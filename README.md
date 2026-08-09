@@ -1,1 +1,1 @@
-# trading-journal1
+# trading-journal2
