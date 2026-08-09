@@ -96,6 +96,22 @@ textarea{resize:none}
 .note{display:flex;gap:8px;font-size:12px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 pre{background:var(--card2);padding:12px;border-radius:10px;overflow-x:auto;font-size:11px;line-height:1.5;margin:0}
 @media (prefers-reduced-motion:reduce){.ticker .item{transition:none}}
+
+:root[data-theme="light"]{
+    --bg:#F5F6F8; --card:#FFFFFF; --card2:#EFF1F5; --border:#DFE3EA;
+    --text:#12151A; --muted:#666E7C; --green:#12A150; --red:#D42B4E; --gold:#9A6E0A;
+    --tabbg:rgba(255,255,255,.94); --radar:#8A93A5; --body:#3A414C;
+    --greenrgb:18,161,80; --redrgb:212,43,78;
+    color-scheme:light;
+}
+:root[data-theme="light"] .card,:root[data-theme="light"] .hero,:root[data-theme="light"] .trade,:root[data-theme="light"] .ticker,:root[data-theme="light"] .pill,:root[data-theme="light"] .tabs{box-shadow:0 1px 2px rgba(16,24,40,.05)}
+:root[data-theme="dark"]{
+    --bg:#0A0B0D; --card:#121419; --card2:#171A21; --border:#232732;
+    --text:#E7EAF0; --muted:#79808F; --green:#22C55E; --red:#F0435A; --gold:#E3B341;
+    --tabbg:rgba(18,20,25,.94); --radar:#C9D1E0; --body:#B6BDCB;
+    --greenrgb:34,197,94; --redrgb:240,67,90;
+    color-scheme:dark;
+}
 </style>
 </head>
 <body>
@@ -117,20 +133,24 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const deDate=iso=>{const p=iso.split("-");return p[2]+"."+p[1]+"."+p[0];};
 const todayISO=()=>new Date().toISOString().slice(0,10);
 
-let S={trades:[],startBalance:600000,name:"Myron",view:"dash",chart:"kurve",month:new Date(),filter:"all",updatedAt:0};
+let S={trades:[],startBalance:600000,name:"Myron",theme:"auto",view:"dash",chart:"kurve",month:new Date(),filter:"all",updatedAt:0};
 let SY={url:"",key:"",journal:"",last:0,status:"off",msg:""};
 let draft=null, tickerIdx=0, tickerTimer=null, pushTimer=null;
 
 /* ---------- speicher ---------- */
 function load(){
   try{const r=localStorage.getItem(KEY);if(r){const s=JSON.parse(r);
-    S.trades=s.trades||[];S.startBalance=s.startBalance??600000;S.name=s.name||"Myron";S.updatedAt=s.updatedAt||0;}}catch(e){}
+    S.trades=s.trades||[];S.startBalance=s.startBalance??600000;S.name=s.name||"Myron";S.theme=s.theme||"auto";S.updatedAt=s.updatedAt||0;}}catch(e){}
   try{const r=localStorage.getItem(SKEY);if(r)Object.assign(SY,JSON.parse(r));}catch(e){}
 }
 function save(touch){
   if(touch!==false)S.updatedAt=Date.now();
-  try{localStorage.setItem(KEY,JSON.stringify({trades:S.trades,startBalance:S.startBalance,name:S.name,updatedAt:S.updatedAt}));}catch(e){}
+  try{localStorage.setItem(KEY,JSON.stringify({trades:S.trades,startBalance:S.startBalance,name:S.name,theme:S.theme,updatedAt:S.updatedAt}));}catch(e){}
   if(touch!==false)schedulePush();
+}
+function applyTheme(){
+  if(S.theme==="auto")document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme",S.theme);
 }
 function saveSync(){try{localStorage.setItem(SKEY,JSON.stringify(SY));}catch(e){}}
 
@@ -467,7 +487,7 @@ function viewSync(){
     '<div class="field"><div class="lbl">Journal-Name (auf beiden Geräten gleich)</div>'+
       '<input data-field="sy_journal" value="'+esc(SY.journal)+'" placeholder="myron-main"></div>'+
     '<button class="btn primary" data-action="saveSync">Verbinden und laden</button></div>'+
-  '<div class="card" style="margin-bottom:10px"><div class="lbl">Name für die Begrüßung</div>'+
+  '<div class="card" style="margin-bottom:10px"><div class="lbl">Darstellung</div><div class="seg">'+[["auto","Automatisch"],["light","Hell"],["dark","Dunkel"]].map(function(o){return '<button data-action="theme" data-v="'+o[0]+'" class="'+(S.theme===o[0]?"on":"")+'">'+o[1]+'</button>';}).join("")+'</div></div>'+'<div class="card" style="margin-bottom:10px"><div class="lbl">Name für die Begrüßung</div>'+
     '<input data-field="name" value="'+esc(S.name)+'" placeholder="Myron"></div>'+
   '<div class="card" style="margin-bottom:10px"><div class="lbl">Einrichtung in Supabase</div>'+
     '<div class="sm muted" style="line-height:1.6;margin-bottom:10px">supabase.com → neues Projekt → SQL Editor → das hier ausführen. '+
@@ -506,6 +526,7 @@ document.addEventListener("click",function(e){
   const el=e.target.closest("[data-action]");if(!el)return;
   const a=el.dataset.action,v=el.dataset.v;
   if(a==="view"){S.view=v;if(v==="new")draft=null;tickerIdx=0;}
+  else if(a==="theme"){S.theme=v;save();applyTheme();}
   else if(a==="chart")S.chart=v;
   else if(a==="filter")S.filter=v;
   else if(a==="prevMonth")S.month=new Date(S.month.getFullYear(),S.month.getMonth()-1,1);
@@ -565,7 +586,7 @@ document.body.appendChild(importer);
 
 document.addEventListener("visibilitychange",function(){if(!document.hidden&&syncOn())pull(false);});
 
-load();render();startTicker();
+load();applyTheme();render();startTicker();
 if(syncOn())pull(false);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>
