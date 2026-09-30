@@ -1,11 +1,11 @@
-const CACHE = "journal-v2";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+const CACHE="journal-v2";
+self.addEventListener("install",function(){self.skipWaiting();});
+self.addEventListener("activate",function(e){
+e.waitUntil(caches.keys().then(function(k){return Promise.all(k.map(function(n){return caches.delete(n);}));}).then(function(){return self.clients.claim();}));
 });
-self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
-});
-self.addEventListener("fetch", e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match("./index.html"))));
+self.addEventListener("fetch",function(e){
+if(e.request.method!=="GET")return;
+e.respondWith(fetch(e.request).then(function(r){
+const c=r.clone();caches.open(CACHE).then(function(x){x.put(e.request,c);});return r;
+}).catch(function(){return caches.match(e.request);}));
 });
