@@ -872,5 +872,205 @@ if(!gesehen)playIntro();
 })();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>
+<!-- POSITIONSRECHNER -->
+<style>
+#pc-btn{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;width:50px;height:50px;border-radius:50%;border:1px solid rgba(var(--greenrgb),.45);background:rgba(var(--greenrgb),.16);color:var(--green);font-size:22px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer}
+@media(min-width:900px){#pc-btn{bottom:24px;right:24px}}
+#pc-modal{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
+#pc-modal.open{display:flex}
+#pc-box{background:var(--bg);color:var(--text);border:1px solid var(--border);width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}
+@media(min-width:600px){#pc-modal{align-items:center}#pc-box{border-radius:18px;padding-bottom:22px}}
+#pc-box h3{margin:0 0 12px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
+#pc-x{background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer;line-height:1}
+#pc-coin{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-size:16px;font-weight:700;text-transform:uppercase;margin-bottom:6px}
+#pc-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px;scrollbar-width:none}#pc-chips::-webkit-scrollbar{display:none}
+.pc-chip{flex:none;padding:6px 11px;border-radius:99px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
+.pc-chip.on{border-color:var(--green);color:var(--green);background:rgba(var(--greenrgb),.12)}
+#pc-live{font-size:12px;color:var(--muted);margin-bottom:10px;min-height:16px}
+#pc-live.ok{color:var(--green)}#pc-live.bad{color:var(--red)}
+.pc-dir{display:flex;gap:6px;margin-bottom:10px}
+.pc-dir button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-weight:600;font-size:15px;cursor:pointer}
+.pc-dir button.on[data-d=long]{background:var(--green);color:#000;border-color:var(--green)}
+.pc-dir button.on[data-d=short]{background:var(--red);color:#fff;border-color:var(--red)}
+.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pc-grid label{font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.pc-grid input{background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:10px;font-size:16px;width:100%}
+.pc-ew{display:flex;gap:4px}
+.pc-ew input{flex:1;min-width:0}
+#pc-ref{background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--green);font-size:16px;padding:0 10px;cursor:pointer}
+#pc-out{margin-top:14px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.pc-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px;border-bottom:1px solid var(--border)}
+.pc-row:last-of-type{border-bottom:none}
+.pc-row span{color:var(--muted)}
+.pc-row b{font-variant-numeric:tabular-nums;text-align:right}
+.pc-big b{font-size:20px;color:var(--green)}
+.pc-warn{color:var(--gold);font-size:12px;margin-top:8px}
+.pc-err{color:var(--red);font-size:13px}
+</style>
+
+<button id="pc-btn" title="Positionsrechner">🧮</button>
+<div id="pc-modal">
+  <div id="pc-box">
+    <h3>Positionsrechner <button id="pc-x">×</button></h3>
+    <div id="pc-chips"></div>
+    <input id="pc-coin" value="BTC" autocomplete="off" autocapitalize="characters" placeholder="Coin suchen, z.B. WIF">
+    <div id="pc-live"></div>
+    <div class="pc-dir">
+      <button data-d="long" class="on">Long</button>
+      <button data-d="short">Short</button>
+    </div>
+    <div class="pc-grid">
+      <label>Einstieg (USDT)<div class="pc-ew"><input id="pc-e" type="text" inputmode="decimal"><button id="pc-ref" title="Live-Kurs">↻</button></div></label>
+      <label>Stop-Loss (USDT)<input id="pc-sl" type="text" inputmode="decimal"></label>
+      <label>Max. Verlust (€)<input id="pc-r" type="text" inputmode="decimal" value="5"></label>
+      <label>Ziel-Gewinn (€)<input id="pc-g" type="text" inputmode="decimal" value="100"></label>
+      <label>oder Take-Profit (USDT)<input id="pc-tp" type="text" inputmode="decimal" placeholder="leer = aus Ziel"></label>
+      <label>Hebel (x)<input id="pc-lev" type="text" inputmode="decimal" value="47"></label>
+      <label>Gebühr pro Seite (%)<input id="pc-fee" type="text" inputmode="decimal" value="0.06"></label>
+      <label>EUR→USDT Kurs<input id="pc-fx" type="text" inputmode="decimal" value="1.08"></label>
+    </div>
+    <div id="pc-out"></div>
+  </div>
+</div>
+
+<script>
+(()=>{
+  const $=id=>document.getElementById(id);
+  const keep=['pc-coin','pc-r','pc-g','pc-lev','pc-fee','pc-fx'];
+  let dir='long', fxLoaded=false, liveEntry=true, timer=null, lastPrice=null;
+
+  try{
+    const s=JSON.parse(localStorage.getItem('pc-v')||'{}');
+    keep.forEach(i=>{if(s[i]!=null)$(i).value=s[i]});
+    if(s.dir)dir=s.dir;
+  }catch(e){}
+
+  const f=v=>parseFloat(String(v).replace(',','.'));
+  const n=(x,d=2)=>x.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const pdec=p=>p>=1000?1:p>=100?2:p>=1?4:p>=0.01?6:8;
+  const qdec=p=>p>=1000?4:p>=10?3:p>=1?2:0;
+  const base=()=>$('pc-coin').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/USDT$/,'')||'BTC';
+  const sym=()=>base()+'USDT';
+  const COINS=['BTC','ETH','SOL','XRP','LINK','DOT','ATOM','HYPE','ENA','VET','FET','TRX','ALGO','LTC','KAS','NEAR','TAO','ADA','AVAX','SUI','BCH','POL','UNI','ZEC','ICP','HBAR','XAU'];
+  function chips(){
+    const b=base();
+    $('pc-chips').innerHTML=COINS.map(c=>'<button class="pc-chip'+(c===b?' on':'')+'" data-c="'+c+'">'+c+'</button>').join('');
+    $('pc-chips').querySelectorAll('.pc-chip').forEach(x=>x.onclick=()=>{$('pc-coin').value=x.dataset.c;$('pc-coin').dispatchEvent(new Event('change'))});
+  }
+
+  function save(){
+    try{const s={dir};keep.forEach(i=>s[i]=$(i).value);localStorage.setItem('pc-v',JSON.stringify(s))}catch(e){}
+  }
+
+  async function getPrice(s){
+    const src=[
+      ['https://fapi.binance.com/fapi/v1/ticker/price?symbol='+s,j=>j.price],
+      ['https://api.bybit.com/v5/market/tickers?category=linear&symbol='+s,j=>j.result&&j.result.list&&j.result.list[0]&&j.result.list[0].lastPrice],
+      ['https://api.binance.com/api/v3/ticker/price?symbol='+s,j=>j.price]
+    ];
+    for(const [u,pick] of src){
+      try{const r=await fetch(u);if(!r.ok)continue;const p=parseFloat(pick(await r.json()));if(p>0)return p}catch(e){}
+    }
+    if(s==='XAUUSDT')return getPrice('PAXGUSDT');   // Gold-Fallback
+    return null;
+  }
+
+  function liveText(){
+    if(!lastPrice)return;
+    $('pc-live').className='ok';
+    $('pc-live').textContent='● Live '+sym()+': '+n(lastPrice,pdec(lastPrice))+(liveEntry?'  (Einstieg folgt live)':'  (Einstieg manuell – ↻ für live)');
+  }
+
+  async function refresh(){
+    const s=sym();
+    const p=await getPrice(s);
+    if(s!==sym())return;
+    if(p==null){$('pc-live').className='bad';$('pc-live').textContent=s+' nicht gefunden';lastPrice=null;return}
+    lastPrice=p;
+    liveText();
+    if(liveEntry){$('pc-e').value=String(+p.toFixed(pdec(p)));calc()}
+  }
+
+  function startLive(){stopLive();refresh();timer=setInterval(refresh,3000)}
+  function stopLive(){if(timer)clearInterval(timer);timer=null}
+
+  function setDir(d){
+    dir=d;
+    document.querySelectorAll('.pc-dir button').forEach(b=>b.classList.toggle('on',b.dataset.d===d));
+    calc();
+  }
+
+  function calc(){
+    save();
+    const out=$('pc-out'), unit=base();
+    const E=f($('pc-e').value), SL=f($('pc-sl').value), R=f($('pc-r').value), G=f($('pc-g').value);
+    const TPin=f($('pc-tp').value), L=f($('pc-lev').value)||1, fee=(f($('pc-fee').value)||0)/100, fx=f($('pc-fx').value)||1;
+    const long=dir==='long';
+
+    if(!(E>0&&SL>0&&R>0)){out.innerHTML='<div class="pc-err">Stop-Loss und max. Verlust eingeben.</div>';return}
+    if(long?SL>=E:SL<=E){out.innerHTML='<div class="pc-err">Stop-Loss muss bei '+(long?'Long UNTER':'Short ÜBER')+' dem Einstieg liegen.</div>';return}
+
+    const pd=pdec(E), qd=qdec(E);
+    const rU=R*fx;
+    const slD=Math.abs(E-SL);
+    const qty=rU/(slD+fee*(E+SL));
+
+    let TP=TPin;
+    if(!(TP>0)){
+      if(!(G>0)){out.innerHTML='<div class="pc-err">Ziel-Gewinn oder Take-Profit eingeben.</div>';return}
+      const gU=G*fx;
+      const d=(gU/qty+2*E*fee)/(long?(1-fee):(1+fee));
+      TP=long?E+d:E-d;
+    }
+    if(TP<=0||(long?TP<=E:TP>=E)){out.innerHTML='<div class="pc-err">Take-Profit liegt auf der falschen Seite / nicht erreichbar.</div>';return}
+
+    const notional=qty*E;
+    const margin=notional/L;
+    const fees=qty*fee*(E+TP);
+    const netU=qty*Math.abs(TP-E)-fees;
+    const liq=long?E*(1-1/L):E*(1+1/L);
+
+    let w='';
+    if(long?SL<=liq:SL>=liq) w+='<div class="pc-warn">⚠️ Stop liegt hinter der Liquidation (~'+n(liq,pd)+'). Hebel runter!</div>';
+    if(fee>0&&qty*fee*(E+SL)>rU*0.3) w+='<div class="pc-warn">⚠️ Gebühren sind über 30 % deines Risikos – Stop ist sehr eng.</div>';
+    w+='<div class="pc-warn" style="color:var(--muted)">Liq. ist eine Schätzung ohne Maintenance-Margin – die echte liegt etwas näher. Menge auf die Schrittgröße der Börse abrunden.</div>';
+
+    out.innerHTML=
+      '<div class="pc-row pc-big"><span>Menge</span><b>'+n(qty,qd)+' '+unit+'</b></div>'+
+      '<div class="pc-row"><span>Positionsgröße</span><b>'+n(notional)+' USDT</b></div>'+
+      '<div class="pc-row"><span>Margin ('+n(L,0)+'x)</span><b>'+n(margin)+' USDT</b></div>'+
+      '<div class="pc-row"><span>Take-Profit-Preis</span><b>'+n(TP,pd)+'</b></div>'+
+      '<div class="pc-row"><span>Gewinn bei TP</span><b style="color:var(--green)">+'+n(netU/fx)+' €</b></div>'+
+      '<div class="pc-row"><span>Verlust bei SL</span><b style="color:var(--red)">−'+n(R)+' €</b></div>'+
+      '<div class="pc-row"><span>CRV</span><b>1 : '+n(netU/rU,1)+'</b></div>'+
+      '<div class="pc-row"><span>SL- / TP-Abstand</span><b>'+n(slD/E*100)+' % / '+n(Math.abs(TP-E)/E*100)+' %</b></div>'+
+      '<div class="pc-row"><span>Gebühren (Ein+Aus, bei TP)</span><b>'+n(fees/fx)+' €</b></div>'+
+      '<div class="pc-row"><span>Liquidation ca.</span><b>'+n(liq,pd)+'</b></div>'+
+      w;
+  }
+
+  async function loadFx(){
+    if(fxLoaded)return; fxLoaded=true;
+    try{
+      const r=await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD');
+      const j=await r.json();
+      if(j.rates&&j.rates.USD){$('pc-fx').value=j.rates.USD.toFixed(4);calc()}
+    }catch(e){}
+  }
+
+  const close=()=>{$('pc-modal').classList.remove('open');stopLive()};
+  $('pc-btn').onclick=()=>{$('pc-modal').classList.add('open');liveEntry=true;loadFx();startLive();calc()};
+  $('pc-x').onclick=close;
+  $('pc-modal').onclick=e=>{if(e.target.id==='pc-modal')close()};
+  $('pc-ref').onclick=()=>{liveEntry=true;refresh()};
+  $('pc-e').addEventListener('input',()=>{liveEntry=false;liveText()});
+  $('pc-coin').addEventListener('change',()=>{$('pc-coin').value=base();chips();$('pc-sl').value='';$('pc-tp').value='';$('pc-e').value='';lastPrice=null;$('pc-live').textContent='Lade Kurs…';$('pc-live').className='';liveEntry=true;startLive()});
+  document.querySelectorAll('#pc-box input').forEach(i=>i.addEventListener('input',calc));
+  document.querySelectorAll('.pc-dir button').forEach(b=>b.onclick=()=>setDir(b.dataset.d));
+  chips();
+  setDir(dir);
+})();
+</script>
+
 </body>
 </html>
