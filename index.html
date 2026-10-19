@@ -911,7 +911,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 <button id="pc-btn" title="Positionsrechner">🧮</button>
 <div id="pc-modal">
   <div id="pc-box">
-    <h3>Positionsrechner <button id="pc-x">×</button></h3>
+    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v3</small></span><button id="pc-x">×</button></h3>
     <div id="pc-chips"></div>
     <input id="pc-coin" value="BTC" autocomplete="off" autocapitalize="characters" placeholder="Coin suchen, z.B. WIF">
     <div id="pc-live"></div>
@@ -937,7 +937,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 (()=>{
   const $=id=>document.getElementById(id);
   const keep=['pc-coin','pc-r','pc-g','pc-lev','pc-fee','pc-fx'];
-  let dir='long', fxLoaded=false, liveEntry=true, timer=null, lastPrice=null;
+  let dir='long', fxLoaded=false, liveEntry=true, timer=null, lastPrice=null, lastAt=0, busy=false;
 
   try{
     const s=JSON.parse(localStorage.getItem('pc-v')||'{}');
@@ -963,13 +963,20 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
   }
 
   async function getPrice(s){
+    const b=s.replace(/USDT$/,'');
     const src=[
       ['https://fapi.binance.com/fapi/v1/ticker/price?symbol='+s,j=>j.price],
-      ['https://api.bybit.com/v5/market/tickers?category=linear&symbol='+s,j=>j.result&&j.result.list&&j.result.list[0]&&j.result.list[0].lastPrice],
-      ['https://api.binance.com/api/v3/ticker/price?symbol='+s,j=>j.price]
+      ['https://data-api.binance.vision/api/v3/ticker/price?symbol='+s,j=>j.price],
+      ['https://www.okx.com/api/v5/market/ticker?instId='+b+'-USDT-SWAP',j=>j.data&&j.data[0]&&j.data[0].last],
+      ['https://api.bybit.com/v5/market/tickers?category=linear&symbol='+s,j=>j.result&&j.result.list&&j.result.list[0]&&j.result.list[0].lastPrice]
     ];
     for(const [u,pick] of src){
-      try{const r=await fetch(u);if(!r.ok)continue;const p=parseFloat(pick(await r.json()));if(p>0)return p}catch(e){}
+      try{
+        const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),4000);
+        const r=await fetch(u+(u.includes('?')?'&':'?')+'_='+Date.now(),{cache:'no-store',signal:ctl.signal});
+        clearTimeout(to);
+        if(!r.ok)continue;const p=parseFloat(pick(await r.json()));if(p>0)return p;
+      }catch(e){}
     }
     if(s==='XAUUSDT')return getPrice('PAXGUSDT');   // Gold-Fallback
     return null;
@@ -978,15 +985,17 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
   function liveText(){
     if(!lastPrice)return;
     $('pc-live').className='ok';
-    $('pc-live').textContent='● Live '+sym()+': '+n(lastPrice,pdec(lastPrice))+(liveEntry?'  (Einstieg folgt live)':'  (Einstieg manuell – ↻ für live)');
+    $('pc-live').textContent='● Live '+sym()+': '+n(lastPrice,pdec(lastPrice))+' · '+new Date(lastAt).toLocaleTimeString('de-DE')+(liveEntry?'  (Einstieg folgt live)':'  (Einstieg manuell – ↻ für live)');
   }
 
   async function refresh(){
+    if(busy)return; busy=true;
     const s=sym();
     const p=await getPrice(s);
+    busy=false;
     if(s!==sym())return;
-    if(p==null){$('pc-live').className='bad';$('pc-live').textContent=s+' nicht gefunden';lastPrice=null;return}
-    lastPrice=p;
+    if(p==null){$('pc-live').className='bad';$('pc-live').textContent='Kein Live-Kurs für '+s+' (Coin falsch oder Netzwerk blockiert)';lastPrice=null;return}
+    lastPrice=p; lastAt=Date.now();
     liveText();
     if(liveEntry){$('pc-e').value=String(+p.toFixed(pdec(p)));calc()}
   }
