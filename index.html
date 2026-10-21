@@ -918,7 +918,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 <button id="pc-btn" title="Positionsrechner">🧮</button>
 <div id="pc-modal">
   <div id="pc-box">
-    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v4</small></span><button id="pc-x">×</button></h3>
+    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v5 · Bitget</small></span><button id="pc-x">×</button></h3>
     <div id="pc-chips"></div>
     <input id="pc-coin" value="BTC" autocomplete="off" autocapitalize="characters" placeholder="Coin suchen, z.B. WIF">
     <div id="pc-live"></div>
@@ -934,7 +934,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
     <div id="pc-crvchips" style="margin-top:12px"></div>
     <div class="pc-grid">
       <label>CRV (1 : x)<input id="pc-crv" type="text" inputmode="decimal" value="20"></label>
-      <label>= Ziel-Gewinn (€)<input id="pc-g" type="text" inputmode="decimal" value="100"></label>
+      <label>= Gewinn bei TP (€)<input id="pc-g" type="text" inputmode="decimal" value="100"></label>
     </div>
 
     <div class="pc-seg pc-adj">
@@ -995,30 +995,45 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
   function syncFromCrv(){const r=f($('pc-r').value),c=f($('pc-crv').value);if(r>0&&c>0)$('pc-g').value=plain(r*c,2);crvChips()}
   function syncFromGoal(){const r=f($('pc-r').value),g=f($('pc-g').value);if(r>0&&g>0)$('pc-crv').value=plain(g/r,2);crvChips()}
 
+  let spec=null, src='';
+  async function loadSpec(s){
+    spec=null;
+    try{
+      const r=await fetch('https://api.bitget.com/api/v2/mix/market/contracts?productType=USDT-FUTURES&symbol='+s,{cache:'no-store'});
+      const d=(await r.json()).data;
+      if(s!==sym()||!d||!d[0])return;
+      const c=d[0], pp=+c.pricePlace;
+      spec={pp, tick:(+c.priceEndStep||1)*Math.pow(10,-pp), vp:+c.volumePlace, qs:+c.sizeMultiplier||Math.pow(10,-(+c.volumePlace)), min:+c.minTradeNum||0, fee:+c.takerFeeRate};
+      if(spec.fee>0)$('pc-fee').value=plain(spec.fee*100,4);
+      calc();
+    }catch(e){}
+  }
+  const rp=x=>spec?+(Math.round(x/spec.tick)*spec.tick).toFixed(spec.pp):x;
+  const rq=x=>spec?+(Math.floor(x/spec.qs+1e-9)*spec.qs).toFixed(spec.vp):x;
+
   async function getPrice(s){
     const b=s.replace(/USDT$/,'');
-    const src=[
-      ['https://fapi.binance.com/fapi/v1/ticker/price?symbol='+s,j=>j.price],
-      ['https://data-api.binance.vision/api/v3/ticker/price?symbol='+s,j=>j.price],
-      ['https://www.okx.com/api/v5/market/ticker?instId='+b+'-USDT-SWAP',j=>j.data&&j.data[0]&&j.data[0].last],
-      ['https://api.bybit.com/v5/market/tickers?category=linear&symbol='+s,j=>j.result&&j.result.list&&j.result.list[0]&&j.result.list[0].lastPrice]
+    const list=[
+      ['Bitget Perp','https://api.bitget.com/api/v2/mix/market/ticker?productType=USDT-FUTURES&symbol='+s,j=>j.data&&j.data[0]&&j.data[0].lastPr],
+      ['Binance Perp','https://fapi.binance.com/fapi/v1/ticker/price?symbol='+s,j=>j.price],
+      ['OKX Perp','https://www.okx.com/api/v5/market/ticker?instId='+b+'-USDT-SWAP',j=>j.data&&j.data[0]&&j.data[0].last],
+      ['Bybit Perp','https://api.bybit.com/v5/market/tickers?category=linear&symbol='+s,j=>j.result&&j.result.list&&j.result.list[0]&&j.result.list[0].lastPrice]
     ];
-    for(const [u,pick] of src){
+    for(const [name,u,pick] of list){
       try{
         const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),4000);
-        const r=await fetch(u+(u.includes('?')?'&':'?')+'_='+Date.now(),{cache:'no-store',signal:ctl.signal});
+        const r=await fetch(u+'&_='+Date.now(),{cache:'no-store',signal:ctl.signal});
         clearTimeout(to);
-        if(!r.ok)continue;const p=parseFloat(pick(await r.json()));if(p>0)return p;
+        if(!r.ok)continue;const p=parseFloat(pick(await r.json()));if(p>0){src=name;return p}
       }catch(e){}
     }
-    if(s==='XAUUSDT')return getPrice('PAXGUSDT');
     return null;
   }
 
   function liveText(){
     if(!lastPrice)return;
-    $('pc-live').className='ok';
-    $('pc-live').textContent='● Live '+sym()+': '+n(lastPrice,pdec(lastPrice))+' · '+new Date(lastAt).toLocaleTimeString('de-DE')+(liveEntry?'  (Einstieg folgt live)':'  (Einstieg manuell – ↻ für live)');
+    $('pc-live').className=src==='Bitget Perp'?'ok':'bad';
+    $('pc-live').textContent='● '+src+' '+sym()+': '+n(lastPrice,spec?spec.pp:pdec(lastPrice))+' · '+new Date(lastAt).toLocaleTimeString('de-DE')+(liveEntry?'  (Einstieg folgt live)':'  (Einstieg manuell – ↻ für live)')+(src!=='Bitget Perp'?'  ⚠️ Bitget nicht erreichbar':'');
   }
 
   async function refresh(){
@@ -1027,10 +1042,10 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
     const p=await getPrice(s);
     busy=false;
     if(s!==sym())return;
-    if(p==null){$('pc-live').className='bad';$('pc-live').textContent='Kein Live-Kurs für '+s+' (Coin falsch oder Netzwerk blockiert)';lastPrice=null;return}
+    if(p==null){$('pc-live').className='bad';$('pc-live').textContent='Kein Live-Kurs für '+s+' (gibt es den Coin auf Bitget Futures?)';lastPrice=null;return}
     lastPrice=p; lastAt=Date.now();
     liveText();
-    if(liveEntry){$('pc-e').value=plain(p,pdec(p));calc()}
+    if(liveEntry){$('pc-e').value=plain(rp(p),pdec(p));calc()}
   }
 
   function startLive(){stopLive();refresh();timer=setInterval(refresh,3000)}
@@ -1063,43 +1078,43 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
     if(!(R>0)) return err('Max. Verlust eingeben.');
     if(!(C>0)) return err('CRV eingeben.');
 
-    const pd=pdec(E), qd=qdec(E);
-    const rU=R*fx, gU=R*C*fx;
-    let SL, TP, qty;
+    const pd=spec?spec.pp:pdec(E), qd=spec?spec.vp:qdec(E);
+    const rU=R*fx;
+    let SL, TP;
 
+    // CRV wie im Chart: TP-Abstand = CRV × SL-Abstand
     if(adj==='tp'){
       SL=f($('pc-sl').value);
       if(!(SL>0)) return err('Stop-Loss eingeben – der Take-Profit wird aus dem CRV berechnet.');
       if(long?SL>=E:SL<=E) return err('Stop-Loss muss bei '+(long?'Long UNTER':'Short ÜBER')+' dem Einstieg liegen.');
-      qty=rU/(Math.abs(E-SL)+fee*(E+SL));
-      const d=(gU/qty+2*E*fee)/(long?(1-fee):(1+fee));
-      TP=long?E+d:E-d;
+      TP=rp(long?E+C*(E-SL):E-C*(SL-E));
       if(TP<=0) return err('Take-Profit wäre unter 0 – CRV zu hoch oder Stop zu weit.');
       $('pc-tp').value=plain(TP,pd);
     }else{
       TP=f($('pc-tp').value);
       if(!(TP>0)) return err('Take-Profit eingeben – der Stop-Loss wird aus dem CRV berechnet.');
       if(long?TP<=E:TP>=E) return err('Take-Profit muss bei '+(long?'Long ÜBER':'Short UNTER')+' dem Einstieg liegen.');
-      const net=Math.abs(TP-E)-fee*(E+TP);
-      if(net<=0) return err('Take-Profit zu nah – die Gebühren fressen den Gewinn.');
-      qty=gU/net;
-      const X=rU/qty;
-      SL=long?(E*(1+fee)-X)/(1-fee):(X+E*(1-fee))/(1+fee);
-      if(long?(SL<=0||SL>=E):SL<=E) return err('Stop-Loss nicht möglich – CRV zu niedrig für diese Gebühren.');
+      SL=rp(long?E-(TP-E)/C:E+(E-TP)/C);
+      if(SL===E) return err('Stop-Loss zu nah am Einstieg – CRV kleiner wählen.');
       $('pc-sl').value=plain(SL,pd);
     }
 
-    const slD=Math.abs(E-SL);
-    const notional=qty*E;
-    const margin=notional/L;
-    const fees=qty*fee*(E+TP);
-    const netU=qty*Math.abs(TP-E)-fees;
+    const slD=Math.abs(E-SL), tpD=Math.abs(TP-E);
+    const qRaw=rU/slD;
+    const qty=rq(qRaw);
+    if(!(qty>0)||(spec&&qty<spec.min)) return err('Menge unter Bitget-Minimum ('+(spec?spec.min:0)+' '+unit+') – Risiko erhöhen oder Stop enger.');
+
+    const lossU=qty*slD, gainU=qty*tpD;
+    const feeIn=qty*E*fee, feeSL=qty*SL*fee, feeTP=qty*TP*fee;
+    const lossNet=lossU+feeIn+feeSL, gainNet=gainU-feeIn-feeTP;
+    const notional=qty*E, margin=notional/L;
     const liq=long?E*(1-1/L):E*(1+1/L);
 
     let w='';
     if(long?SL<=liq:SL>=liq) w+='<div class="pc-warn">⚠️ Stop liegt hinter der Liquidation (~'+n(liq,pd)+'). Hebel runter!</div>';
-    if(fee>0&&qty*fee*(E+SL)>rU*0.3) w+='<div class="pc-warn">⚠️ Gebühren sind über 30 % deines Risikos – Stop ist sehr eng.</div>';
-    w+='<div class="pc-warn" style="color:var(--muted)">Liq. ist eine Schätzung ohne Maintenance-Margin – die echte liegt etwas näher. Menge auf die Schrittgröße der Börse abrunden.</div>';
+    if(feeIn+feeSL>lossU*0.3) w+='<div class="pc-warn">⚠️ Gebühren sind '+n((feeIn+feeSL)/lossU*100,0)+' % deines Risikos – Stop ist sehr eng.</div>';
+    if(spec&&qty<qRaw*0.9) w+='<div class="pc-warn">Menge auf Bitget-Schritt ('+spec.qs+') abgerundet – Risiko daher etwas kleiner.</div>';
+    w+='<div class="pc-warn" style="color:var(--muted)">'+(spec?'Preise & Menge auf Bitget-Schritte gerundet. ':'')+'Liq. ist eine Schätzung – die echte liegt etwas näher.</div>';
 
     $('pc-out').innerHTML=
       '<div class="pc-row pc-big"><span>Menge</span><b>'+n(qty,qd)+' '+unit+'</b></div>'+
@@ -1107,11 +1122,11 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
       '<div class="pc-row"><span>Margin ('+n(L,0)+'x)</span><b>'+n(margin)+' USDT</b></div>'+
       '<div class="pc-row"><span>Stop-Loss</span><b style="color:var(--red)">'+n(SL,pd)+'</b></div>'+
       '<div class="pc-row"><span>Take-Profit</span><b style="color:var(--green)">'+n(TP,pd)+'</b></div>'+
-      '<div class="pc-row"><span>Gewinn bei TP</span><b style="color:var(--green)">+'+n(netU/fx)+' €</b></div>'+
-      '<div class="pc-row"><span>Verlust bei SL</span><b style="color:var(--red)">−'+n(R)+' €</b></div>'+
-      '<div class="pc-row"><span>CRV (netto)</span><b>1 : '+n(netU/rU,1)+'</b></div>'+
-      '<div class="pc-row"><span>SL- / TP-Abstand</span><b>'+n(slD/E*100)+' % / '+n(Math.abs(TP-E)/E*100)+' %</b></div>'+
-      '<div class="pc-row"><span>Gebühren (Ein+Aus, bei TP)</span><b>'+n(fees/fx)+' €</b></div>'+
+      '<div class="pc-row"><span>Verlust bei SL</span><b style="color:var(--red)">−'+n(lossU/fx)+' € <small style="color:var(--muted)">(inkl. Geb. −'+n(lossNet/fx)+')</small></b></div>'+
+      '<div class="pc-row"><span>Gewinn bei TP</span><b style="color:var(--green)">+'+n(gainU/fx)+' € <small style="color:var(--muted)">(nach Geb. +'+n(gainNet/fx)+')</small></b></div>'+
+      '<div class="pc-row"><span>CRV</span><b>1 : '+n(tpD/slD,1)+' <small style="color:var(--muted)">(netto 1 : '+n(gainNet/lossNet,1)+')</small></b></div>'+
+      '<div class="pc-row"><span>SL- / TP-Abstand</span><b>'+n(slD/E*100)+' % / '+n(tpD/E*100)+' %</b></div>'+
+      '<div class="pc-row"><span>Gebühren (Ein+Aus, bei TP)</span><b>'+n((feeIn+feeTP)/fx)+' €</b></div>'+
       '<div class="pc-row"><span>Liquidation ca.</span><b>'+n(liq,pd)+'</b></div>'+
       w;
   }
@@ -1126,12 +1141,12 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
   }
 
   const close=()=>{$('pc-modal').classList.remove('open');stopLive()};
-  $('pc-btn').onclick=()=>{$('pc-modal').classList.add('open');liveEntry=true;loadFx();startLive();calc()};
+  $('pc-btn').onclick=()=>{$('pc-modal').classList.add('open');liveEntry=true;loadFx();startLive();if(!spec)loadSpec(sym());calc()};
   $('pc-x').onclick=close;
   $('pc-modal').onclick=e=>{if(e.target.id==='pc-modal')close()};
   $('pc-ref').onclick=()=>{liveEntry=true;refresh()};
   $('pc-e').addEventListener('input',()=>{liveEntry=false;liveText()});
-  $('pc-coin').addEventListener('change',()=>{$('pc-coin').value=base();chips();$('pc-sl').value='';$('pc-tp').value='';$('pc-e').value='';lastPrice=null;$('pc-live').textContent='Lade Kurs…';$('pc-live').className='';liveEntry=true;startLive()});
+  $('pc-coin').addEventListener('change',()=>{$('pc-coin').value=base();chips();$('pc-sl').value='';$('pc-tp').value='';$('pc-e').value='';lastPrice=null;$('pc-live').textContent='Lade Kurs…';$('pc-live').className='';liveEntry=true;startLive();loadSpec(sym())});
   $('pc-crv').addEventListener('input',syncFromCrv);
   $('pc-r').addEventListener('input',syncFromCrv);
   $('pc-g').addEventListener('input',syncFromGoal);
