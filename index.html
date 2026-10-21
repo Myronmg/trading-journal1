@@ -882,22 +882,29 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 @media(min-width:600px){#pc-modal{align-items:center}#pc-box{border-radius:18px;padding-bottom:22px}}
 #pc-box h3{margin:0 0 12px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
 #pc-x{background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer;line-height:1}
-#pc-coin{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-size:16px;font-weight:700;text-transform:uppercase;margin-bottom:6px}
-#pc-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px;scrollbar-width:none}#pc-chips::-webkit-scrollbar{display:none}
+#pc-chips,#pc-crvchips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px;scrollbar-width:none}
+#pc-chips::-webkit-scrollbar,#pc-crvchips::-webkit-scrollbar{display:none}
 .pc-chip{flex:none;padding:6px 11px;border-radius:99px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
 .pc-chip.on{border-color:var(--green);color:var(--green);background:rgba(var(--greenrgb),.12)}
+#pc-coin{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-size:16px;font-weight:700;text-transform:uppercase;margin-bottom:6px}
 #pc-live{font-size:12px;color:var(--muted);margin-bottom:10px;min-height:16px}
 #pc-live.ok{color:var(--green)}#pc-live.bad{color:var(--red)}
-.pc-dir{display:flex;gap:6px;margin-bottom:10px}
-.pc-dir button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-weight:600;font-size:15px;cursor:pointer}
+.pc-seg{display:flex;gap:6px;margin-bottom:10px}
+.pc-seg button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-weight:600;font-size:15px;cursor:pointer}
 .pc-dir button.on[data-d=long]{background:var(--green);color:#000;border-color:var(--green)}
 .pc-dir button.on[data-d=short]{background:var(--red);color:#fff;border-color:var(--red)}
+.pc-adj{margin:12px 0 8px}
+.pc-adj span{font-size:11px;color:var(--muted);align-self:center;flex:none}
+.pc-adj button{padding:7px;font-size:13px}
+.pc-adj button.on{border-color:var(--gold);color:var(--gold);background:rgba(227,179,65,.12)}
 .pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pc-grid label{font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 .pc-grid input{background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:10px;font-size:16px;width:100%}
+.pc-grid input[readonly]{border-color:var(--gold);color:var(--gold);background:rgba(227,179,65,.08)}
 .pc-ew{display:flex;gap:4px}
 .pc-ew input{flex:1;min-width:0}
 #pc-ref{background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--green);font-size:16px;padding:0 10px;cursor:pointer}
+.pc-crvlabel{font-size:11px;color:var(--muted);margin:10px 0 4px}
 #pc-out{margin-top:14px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px}
 .pc-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px;border-bottom:1px solid var(--border)}
 .pc-row:last-of-type{border-bottom:none}
@@ -911,20 +918,33 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 <button id="pc-btn" title="Positionsrechner">🧮</button>
 <div id="pc-modal">
   <div id="pc-box">
-    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v3</small></span><button id="pc-x">×</button></h3>
+    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v4</small></span><button id="pc-x">×</button></h3>
     <div id="pc-chips"></div>
     <input id="pc-coin" value="BTC" autocomplete="off" autocapitalize="characters" placeholder="Coin suchen, z.B. WIF">
     <div id="pc-live"></div>
-    <div class="pc-dir">
+    <div class="pc-seg pc-dir">
       <button data-d="long" class="on">Long</button>
       <button data-d="short">Short</button>
     </div>
     <div class="pc-grid">
       <label>Einstieg (USDT)<div class="pc-ew"><input id="pc-e" type="text" inputmode="decimal"><button id="pc-ref" title="Live-Kurs">↻</button></div></label>
-      <label>Stop-Loss (USDT)<input id="pc-sl" type="text" inputmode="decimal"></label>
       <label>Max. Verlust (€)<input id="pc-r" type="text" inputmode="decimal" value="5"></label>
-      <label>Ziel-Gewinn (€)<input id="pc-g" type="text" inputmode="decimal" value="100"></label>
-      <label>oder Take-Profit (USDT)<input id="pc-tp" type="text" inputmode="decimal" placeholder="leer = aus Ziel"></label>
+    </div>
+
+    <div id="pc-crvchips" style="margin-top:12px"></div>
+    <div class="pc-grid">
+      <label>CRV (1 : x)<input id="pc-crv" type="text" inputmode="decimal" value="20"></label>
+      <label>= Ziel-Gewinn (€)<input id="pc-g" type="text" inputmode="decimal" value="100"></label>
+    </div>
+
+    <div class="pc-seg pc-adj">
+      <span>CRV passt an:</span>
+      <button data-a="tp" class="on">Take-Profit</button>
+      <button data-a="sl">Stop-Loss</button>
+    </div>
+    <div class="pc-grid">
+      <label id="pc-sl-l">Stop-Loss (USDT)<input id="pc-sl" type="text" inputmode="decimal"></label>
+      <label id="pc-tp-l">Take-Profit (USDT)<input id="pc-tp" type="text" inputmode="decimal"></label>
       <label>Hebel (x)<input id="pc-lev" type="text" inputmode="decimal" value="47"></label>
       <label>Gebühr pro Seite (%)<input id="pc-fee" type="text" inputmode="decimal" value="0.06"></label>
       <label>EUR→USDT Kurs<input id="pc-fx" type="text" inputmode="decimal" value="1.08"></label>
@@ -936,13 +956,14 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 <script>
 (()=>{
   const $=id=>document.getElementById(id);
-  const keep=['pc-coin','pc-r','pc-g','pc-lev','pc-fee','pc-fx'];
-  let dir='long', fxLoaded=false, liveEntry=true, timer=null, lastPrice=null, lastAt=0, busy=false;
+  const keep=['pc-coin','pc-r','pc-crv','pc-lev','pc-fee','pc-fx'];
+  let dir='long', adj='tp', fxLoaded=false, liveEntry=true, timer=null, lastPrice=null, lastAt=0, busy=false;
 
   try{
     const s=JSON.parse(localStorage.getItem('pc-v')||'{}');
     keep.forEach(i=>{if(s[i]!=null)$(i).value=s[i]});
     if(s.dir)dir=s.dir;
+    if(s.adj)adj=s.adj;
   }catch(e){}
 
   const f=v=>parseFloat(String(v).replace(',','.'));
@@ -951,16 +972,28 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
   const qdec=p=>p>=1000?4:p>=10?3:p>=1?2:0;
   const base=()=>$('pc-coin').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/USDT$/,'')||'BTC';
   const sym=()=>base()+'USDT';
+  const plain=(x,d)=>String(+x.toFixed(d));
   const COINS=['BTC','ETH','SOL','XRP','LINK','DOT','ATOM','HYPE','ENA','VET','FET','TRX','ALGO','LTC','KAS','NEAR','TAO','ADA','AVAX','SUI','BCH','POL','UNI','ZEC','ICP','HBAR','XAU'];
+  const CRVS=[1,1.5,2,3,4,5,10,20];
+
+  function save(){
+    try{const s={dir,adj};keep.forEach(i=>s[i]=$(i).value);localStorage.setItem('pc-v',JSON.stringify(s))}catch(e){}
+  }
+
   function chips(){
     const b=base();
     $('pc-chips').innerHTML=COINS.map(c=>'<button class="pc-chip'+(c===b?' on':'')+'" data-c="'+c+'">'+c+'</button>').join('');
     $('pc-chips').querySelectorAll('.pc-chip').forEach(x=>x.onclick=()=>{$('pc-coin').value=x.dataset.c;$('pc-coin').dispatchEvent(new Event('change'))});
   }
-
-  function save(){
-    try{const s={dir};keep.forEach(i=>s[i]=$(i).value);localStorage.setItem('pc-v',JSON.stringify(s))}catch(e){}
+  function crvChips(){
+    const c=f($('pc-crv').value);
+    $('pc-crvchips').innerHTML=CRVS.map(v=>'<button class="pc-chip'+(v===c?' on':'')+'" data-v="'+v+'">1:'+String(v).replace('.',',')+'</button>').join('');
+    $('pc-crvchips').querySelectorAll('.pc-chip').forEach(x=>x.onclick=()=>{$('pc-crv').value=x.dataset.v;syncFromCrv();calc()});
   }
+
+  // CRV <-> Ziel-Gewinn koppeln
+  function syncFromCrv(){const r=f($('pc-r').value),c=f($('pc-crv').value);if(r>0&&c>0)$('pc-g').value=plain(r*c,2);crvChips()}
+  function syncFromGoal(){const r=f($('pc-r').value),g=f($('pc-g').value);if(r>0&&g>0)$('pc-crv').value=plain(g/r,2);crvChips()}
 
   async function getPrice(s){
     const b=s.replace(/USDT$/,'');
@@ -978,7 +1011,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
         if(!r.ok)continue;const p=parseFloat(pick(await r.json()));if(p>0)return p;
       }catch(e){}
     }
-    if(s==='XAUUSDT')return getPrice('PAXGUSDT');   // Gold-Fallback
+    if(s==='XAUUSDT')return getPrice('PAXGUSDT');
     return null;
   }
 
@@ -997,7 +1030,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
     if(p==null){$('pc-live').className='bad';$('pc-live').textContent='Kein Live-Kurs für '+s+' (Coin falsch oder Netzwerk blockiert)';lastPrice=null;return}
     lastPrice=p; lastAt=Date.now();
     liveText();
-    if(liveEntry){$('pc-e').value=String(+p.toFixed(pdec(p)));calc()}
+    if(liveEntry){$('pc-e').value=plain(p,pdec(p));calc()}
   }
 
   function startLive(){stopLive();refresh();timer=setInterval(refresh,3000)}
@@ -1008,31 +1041,55 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
     document.querySelectorAll('.pc-dir button').forEach(b=>b.classList.toggle('on',b.dataset.d===d));
     calc();
   }
+  function setAdj(a){
+    adj=a;
+    document.querySelectorAll('.pc-adj button').forEach(b=>b.classList.toggle('on',b.dataset.a===a));
+    $('pc-tp').readOnly=(a==='tp');
+    $('pc-sl').readOnly=(a==='sl');
+    $('pc-tp-l').firstChild.nodeValue=a==='tp'?'Take-Profit (auto)':'Take-Profit (USDT)';
+    $('pc-sl-l').firstChild.nodeValue=a==='sl'?'Stop-Loss (auto)':'Stop-Loss (USDT)';
+    calc();
+  }
+
+  function err(t){$('pc-out').innerHTML='<div class="pc-err">'+t+'</div>'}
 
   function calc(){
     save();
-    const out=$('pc-out'), unit=base();
-    const E=f($('pc-e').value), SL=f($('pc-sl').value), R=f($('pc-r').value), G=f($('pc-g').value);
-    const TPin=f($('pc-tp').value), L=f($('pc-lev').value)||1, fee=(f($('pc-fee').value)||0)/100, fx=f($('pc-fx').value)||1;
+    const unit=base();
+    const E=f($('pc-e').value), R=f($('pc-r').value), C=f($('pc-crv').value);
+    const L=f($('pc-lev').value)||1, fee=(f($('pc-fee').value)||0)/100, fx=f($('pc-fx').value)||1;
     const long=dir==='long';
-
-    if(!(E>0&&SL>0&&R>0)){out.innerHTML='<div class="pc-err">Stop-Loss und max. Verlust eingeben.</div>';return}
-    if(long?SL>=E:SL<=E){out.innerHTML='<div class="pc-err">Stop-Loss muss bei '+(long?'Long UNTER':'Short ÜBER')+' dem Einstieg liegen.</div>';return}
+    if(!(E>0)) return err('Einstieg eingeben (oder Live-Kurs abwarten).');
+    if(!(R>0)) return err('Max. Verlust eingeben.');
+    if(!(C>0)) return err('CRV eingeben.');
 
     const pd=pdec(E), qd=qdec(E);
-    const rU=R*fx;
-    const slD=Math.abs(E-SL);
-    const qty=rU/(slD+fee*(E+SL));
+    const rU=R*fx, gU=R*C*fx;
+    let SL, TP, qty;
 
-    let TP=TPin;
-    if(!(TP>0)){
-      if(!(G>0)){out.innerHTML='<div class="pc-err">Ziel-Gewinn oder Take-Profit eingeben.</div>';return}
-      const gU=G*fx;
+    if(adj==='tp'){
+      SL=f($('pc-sl').value);
+      if(!(SL>0)) return err('Stop-Loss eingeben – der Take-Profit wird aus dem CRV berechnet.');
+      if(long?SL>=E:SL<=E) return err('Stop-Loss muss bei '+(long?'Long UNTER':'Short ÜBER')+' dem Einstieg liegen.');
+      qty=rU/(Math.abs(E-SL)+fee*(E+SL));
       const d=(gU/qty+2*E*fee)/(long?(1-fee):(1+fee));
       TP=long?E+d:E-d;
+      if(TP<=0) return err('Take-Profit wäre unter 0 – CRV zu hoch oder Stop zu weit.');
+      $('pc-tp').value=plain(TP,pd);
+    }else{
+      TP=f($('pc-tp').value);
+      if(!(TP>0)) return err('Take-Profit eingeben – der Stop-Loss wird aus dem CRV berechnet.');
+      if(long?TP<=E:TP>=E) return err('Take-Profit muss bei '+(long?'Long ÜBER':'Short UNTER')+' dem Einstieg liegen.');
+      const net=Math.abs(TP-E)-fee*(E+TP);
+      if(net<=0) return err('Take-Profit zu nah – die Gebühren fressen den Gewinn.');
+      qty=gU/net;
+      const X=rU/qty;
+      SL=long?(E*(1+fee)-X)/(1-fee):(X+E*(1-fee))/(1+fee);
+      if(long?(SL<=0||SL>=E):SL<=E) return err('Stop-Loss nicht möglich – CRV zu niedrig für diese Gebühren.');
+      $('pc-sl').value=plain(SL,pd);
     }
-    if(TP<=0||(long?TP<=E:TP>=E)){out.innerHTML='<div class="pc-err">Take-Profit liegt auf der falschen Seite / nicht erreichbar.</div>';return}
 
+    const slD=Math.abs(E-SL);
     const notional=qty*E;
     const margin=notional/L;
     const fees=qty*fee*(E+TP);
@@ -1044,14 +1101,15 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
     if(fee>0&&qty*fee*(E+SL)>rU*0.3) w+='<div class="pc-warn">⚠️ Gebühren sind über 30 % deines Risikos – Stop ist sehr eng.</div>';
     w+='<div class="pc-warn" style="color:var(--muted)">Liq. ist eine Schätzung ohne Maintenance-Margin – die echte liegt etwas näher. Menge auf die Schrittgröße der Börse abrunden.</div>';
 
-    out.innerHTML=
+    $('pc-out').innerHTML=
       '<div class="pc-row pc-big"><span>Menge</span><b>'+n(qty,qd)+' '+unit+'</b></div>'+
       '<div class="pc-row"><span>Positionsgröße</span><b>'+n(notional)+' USDT</b></div>'+
       '<div class="pc-row"><span>Margin ('+n(L,0)+'x)</span><b>'+n(margin)+' USDT</b></div>'+
-      '<div class="pc-row"><span>Take-Profit-Preis</span><b>'+n(TP,pd)+'</b></div>'+
+      '<div class="pc-row"><span>Stop-Loss</span><b style="color:var(--red)">'+n(SL,pd)+'</b></div>'+
+      '<div class="pc-row"><span>Take-Profit</span><b style="color:var(--green)">'+n(TP,pd)+'</b></div>'+
       '<div class="pc-row"><span>Gewinn bei TP</span><b style="color:var(--green)">+'+n(netU/fx)+' €</b></div>'+
       '<div class="pc-row"><span>Verlust bei SL</span><b style="color:var(--red)">−'+n(R)+' €</b></div>'+
-      '<div class="pc-row"><span>CRV</span><b>1 : '+n(netU/rU,1)+'</b></div>'+
+      '<div class="pc-row"><span>CRV (netto)</span><b>1 : '+n(netU/rU,1)+'</b></div>'+
       '<div class="pc-row"><span>SL- / TP-Abstand</span><b>'+n(slD/E*100)+' % / '+n(Math.abs(TP-E)/E*100)+' %</b></div>'+
       '<div class="pc-row"><span>Gebühren (Ein+Aus, bei TP)</span><b>'+n(fees/fx)+' €</b></div>'+
       '<div class="pc-row"><span>Liquidation ca.</span><b>'+n(liq,pd)+'</b></div>'+
@@ -1074,10 +1132,15 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
   $('pc-ref').onclick=()=>{liveEntry=true;refresh()};
   $('pc-e').addEventListener('input',()=>{liveEntry=false;liveText()});
   $('pc-coin').addEventListener('change',()=>{$('pc-coin').value=base();chips();$('pc-sl').value='';$('pc-tp').value='';$('pc-e').value='';lastPrice=null;$('pc-live').textContent='Lade Kurs…';$('pc-live').className='';liveEntry=true;startLive()});
+  $('pc-crv').addEventListener('input',syncFromCrv);
+  $('pc-r').addEventListener('input',syncFromCrv);
+  $('pc-g').addEventListener('input',syncFromGoal);
   document.querySelectorAll('#pc-box input').forEach(i=>i.addEventListener('input',calc));
   document.querySelectorAll('.pc-dir button').forEach(b=>b.onclick=()=>setDir(b.dataset.d));
-  chips();
-  setDir(dir);
+  document.querySelectorAll('.pc-adj button').forEach(b=>b.onclick=()=>setAdj(b.dataset.a));
+  chips(); syncFromCrv();
+  dir=dir; document.querySelectorAll('.pc-dir button').forEach(b=>b.classList.toggle('on',b.dataset.d===dir));
+  setAdj(adj);
 })();
 </script>
 
