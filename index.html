@@ -872,6 +872,155 @@ if(!gesehen)playIntro();
 })();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>
+<!-- SYNC (Supabase) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+if(!window.supabase||!window.supabase.createClient)return;
+const sb=window.supabase.createClient('https://amqjsrhbomwenkhueehm.supabase.co','sb_publishable_FxLMPFgWxoYqNzQdBtQ2hA_94RN51-4',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+const SY={user:null,base:0,busy:false,again:false,timer:null,last:0,msg:'',err:false};
+const lk=k=>'fundedbook:'+k+':'+(SY.user?SY.user.id:'');
+const lget=k=>{try{return localStorage.getItem(lk(k))}catch(e){return null}};
+const lset=(k,v)=>{try{localStorage.setItem(lk(k),v)}catch(e){}};
+function upSet(){try{return new Set(JSON.parse(lget('up')||'[]'))}catch(e){return new Set()}}
+function setMsg(t,err){SY.msg=t;SY.err=!!err;const el=document.getElementById('sync-status');if(el){el.textContent=t;el.style.color=err?'var(--red)':'var(--muted)';}}
+const tm=t=>new Date(t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+
+/* ---- Hooks in die App ---- */
+const _save=save;
+save=function(touch){_save(touch);if(touch!==false)schedule();};
+const _del=deleteShots;
+deleteShots=function(ids){_del(ids);if(SY.user&&ids&&ids.length)sb.from('shots').delete().in('id',ids).then(()=>{});};
+
+function local(){return{trades:S.trades,startBalance:S.startBalance,name:S.name,notes:S.notes};}
+function apply(d,ts){
+S.trades=d.trades||[];if(d.startBalance!=null)S.startBalance=d.startBalance;if(d.name)S.name=d.name;S.notes=d.notes||{};
+S.updatedAt=ts;_save(false);
+if(S.view!=='new'&&document.getElementById('modal').hidden){render();startTicker();}
+}
+function merge(r){
+const ids=new Set(S.trades.map(t=>String(t.id)));
+const add=(r.trades||[]).filter(t=>!ids.has(String(t.id)));
+S.trades=S.trades.concat(add);
+S.notes=Object.assign({},r.notes||{},S.notes||{});
+return add.length;
+}
+
+async function pushShots(){
+const up=upSet();let n=0;
+for(const t of S.trades)for(const id of (t.shots||[])){
+if(up.has(id))continue;
+const d=await getShot(id);if(!d)continue;
+const {error}=await sb.from('shots').upsert({user_id:SY.user.id,id,data:d});
+if(error)throw error;
+up.add(id);n++;lset('up',JSON.stringify([...up]));
+}
+return n;
+}
+async function pullShots(){
+const need=[];
+for(const t of S.trades)for(const id of (t.shots||[])){if(!(await getShot(id)))need.push(id);}
+const up=upSet();
+for(let i=0;i<need.length;i+=10){
+const {data,error}=await sb.from('shots').select('id,data').in('id',need.slice(i,i+10));
+if(error)throw error;
+for(const r of data||[]){SHOTS[r.id]=r.data;up.add(r.id);try{await IDB.set(r.id,r.data);}catch(e){}}
+}
+lset('up',JSON.stringify([...up]));
+if(need.length)hydrateShots();
+}
+
+async function sync(){
+if(!SY.user)return;
+if(SY.busy){SY.again=true;return;}
+SY.busy=true;setMsg('Synchronisiere…');
+try{
+const {data:row,error}=await sb.from('journal').select('data,updated_at').maybeSingle();
+if(error)throw error;
+const first=!lget('ok');
+if(!row){
+await pushShots();
+const {error:e2}=await sb.from('journal').upsert({user_id:SY.user.id,data:local(),updated_at:S.updatedAt||Date.now()});if(e2)throw e2;
+SY.base=S.updatedAt;
+}else{
+const rts=Number(row.updated_at)||0;
+if(first&&S.trades.length&&rts!==S.updatedAt){
+merge(row.data);S.updatedAt=Date.now();_save(false);
+await pushShots();
+const {error:e3}=await sb.from('journal').upsert({user_id:SY.user.id,data:local(),updated_at:S.updatedAt});if(e3)throw e3;
+SY.base=S.updatedAt;render();startTicker();
+}else if(rts>S.updatedAt){
+if(SY.base&&S.updatedAt>SY.base){merge(row.data);S.updatedAt=Date.now();_save(false);await pushShots();
+const {error:e4}=await sb.from('journal').upsert({user_id:SY.user.id,data:local(),updated_at:S.updatedAt});if(e4)throw e4;SY.base=S.updatedAt;render();startTicker();}
+else{apply(row.data,rts);SY.base=rts;}
+}else if(rts<S.updatedAt){
+await pushShots();
+const {error:e5}=await sb.from('journal').upsert({user_id:SY.user.id,data:local(),updated_at:S.updatedAt});if(e5)throw e5;
+SY.base=S.updatedAt;
+}else SY.base=rts;
+}
+lset('ok','1');
+await pullShots();
+SY.last=Date.now();setMsg('✓ Synchronisiert · '+tm(SY.last));
+}catch(e){
+setMsg('⚠️ Sync-Fehler: '+(e.message||e)+(/relation|does not exist|schema cache/i.test(e.message||'')?' – SQL in Supabase ausführen!':''),true);
+}finally{
+SY.busy=false;
+if(SY.again){SY.again=false;setTimeout(sync,300);}
+}
+}
+function schedule(){if(!SY.user)return;clearTimeout(SY.timer);SY.timer=setTimeout(sync,1500);}
+
+sb.auth.onAuthStateChange(function(ev,session){
+const u=session?session.user:null,changed=(u&&u.id)!==(SY.user&&SY.user.id);
+SY.user=u;
+if(changed){SY.base=0;if(S.view==='settings'){render();startTicker();}if(u)setTimeout(sync,0);}
+});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')sync();});
+window.addEventListener('online',sync);
+setInterval(function(){if(document.visibilityState==='visible')sync();},45000);
+
+/* ---- Einstellungen: Sync-Karte ---- */
+function card(){
+if(SY.user)return '<div class="card" style="margin-bottom:10px"><div class="lbl">Synchronisierung</div>'+
+'<div class="sm" style="line-height:1.6;margin-bottom:6px">Angemeldet als <b>'+esc(SY.user.email||'')+'</b></div>'+
+'<div class="sm" id="sync-status" style="line-height:1.6;margin-bottom:10px;color:'+(SY.err?'var(--red)':'var(--muted)')+'">'+esc(SY.msg||'Bereit')+'</div>'+
+'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-sync="now">Jetzt synchronisieren</button><button class="btn" data-sync="out">Abmelden</button></div></div>';
+return '<div class="card" style="margin-bottom:10px"><div class="lbl">Synchronisierung</div>'+
+'<div class="sm muted" style="line-height:1.6;margin-bottom:10px">Melde dich auf Mac, iPhone und iPad mit demselben Konto an – Trades, Notizen und Screenshots werden automatisch abgeglichen.</div>'+
+'<input id="sync-mail" type="email" autocomplete="username" placeholder="E-Mail" style="margin-bottom:8px">'+
+'<input id="sync-pw" type="password" autocomplete="current-password" placeholder="Passwort (min. 6 Zeichen)" style="margin-bottom:10px">'+
+'<div class="sm" id="sync-status" style="line-height:1.6;margin-bottom:10px;color:'+(SY.err?'var(--red)':'var(--muted)')+'">'+esc(SY.msg||'')+'</div>'+
+'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-sync="in">Einloggen</button><button class="btn" data-sync="up">Konto erstellen</button></div></div>';
+}
+const _vs=viewSettings;
+viewSettings=function(){
+let h=_vs();
+const m='<div class="card"><div class="lbl">Daten</div>';
+h=h.replace(m,card()+m);
+if(SY.user)h=h.replace('Alles wird nur auf diesem Gerät gespeichert. ','Deine Daten werden mit deinem Konto synchronisiert. ');
+return h;
+};
+document.addEventListener('click',async function(e){
+const b=e.target.closest('[data-sync]');if(!b)return;
+const a=b.dataset.sync;
+if(a==='now'){sync();return;}
+if(a==='out'){await sb.auth.signOut();setMsg('');render();startTicker();return;}
+const email=(document.getElementById('sync-mail').value||'').trim(),password=document.getElementById('sync-pw').value||'';
+if(!email||password.length<6){setMsg('E-Mail und Passwort (min. 6 Zeichen) eingeben.',true);return;}
+setMsg(a==='up'?'Konto wird erstellt…':'Einloggen…');
+if(a==='up'){
+const {data,error}=await sb.auth.signUp({email,password});
+if(error){setMsg('⚠️ '+error.message,true);return;}
+if(!data.session)setMsg('📧 Bestätigungs-Mail geschickt. Link öffnen, dann hier „Einloggen“ tippen.');
+}else{
+const {error}=await sb.auth.signInWithPassword({email,password});
+if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Passwort falsch.':/not confirmed/i.test(error.message)?'E-Mail noch nicht bestätigt – Link in der Mail öffnen.':error.message),true);
+}
+});
+})();
+</script>
+
 <!-- POSITIONSRECHNER -->
 <style>
 #pc-btn{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;width:50px;height:50px;border-radius:50%;border:1px solid rgba(var(--greenrgb),.45);background:rgba(var(--greenrgb),.16);color:var(--green);font-size:22px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer}
