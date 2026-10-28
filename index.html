@@ -1052,6 +1052,8 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
 .pc-grid input[readonly]{border-color:var(--gold);color:var(--gold);background:rgba(227,179,65,.08)}
 .pc-ew{display:flex;gap:4px}
 .pc-ew input{flex:1;min-width:0}
+#pc-slmode{background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--gold);font-size:15px;font-weight:700;padding:0 11px;cursor:pointer;min-width:40px}
+#pc-slchips{display:none;gap:6px;overflow-x:auto;margin-top:8px;scrollbar-width:none}#pc-slchips::-webkit-scrollbar{display:none}
 #pc-ref{background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--green);font-size:16px;padding:0 10px;cursor:pointer}
 .pc-crvlabel{font-size:11px;color:var(--muted);margin:10px 0 4px}
 #pc-out{margin-top:14px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px}
@@ -1067,7 +1069,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
 <button id="pc-btn" title="Positionsrechner">🧮</button>
 <div id="pc-modal">
   <div id="pc-box">
-    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v6 · Bitget</small></span><button id="pc-x">×</button></h3>
+    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v7 · Bitget</small></span><button id="pc-x">×</button></h3>
     <div id="pc-chips"></div>
     <input id="pc-coin" value="BTC" autocomplete="off" autocapitalize="characters" placeholder="Coin suchen, z.B. WIF">
     <div id="pc-live"></div>
@@ -1092,8 +1094,11 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
       <button data-a="sl">Stop-Loss</button>
     </div>
     <div class="pc-grid">
-      <label id="pc-sl-l">Stop-Loss (USDT)<input id="pc-sl" type="text" inputmode="decimal" placeholder="Preis oder z.B. 0,8%"></label>
+      <label id="pc-sl-l">Stop-Loss (USDT)<div class="pc-ew"><input id="pc-sl" type="text" inputmode="decimal"><button id="pc-slmode" type="button">$</button></div></label>
       <label id="pc-tp-l">Take-Profit (USDT)<input id="pc-tp" type="text" inputmode="decimal"></label>
+    </div>
+    <div id="pc-slchips"></div>
+    <div class="pc-grid" style="margin-top:8px">
       <label>Hebel (x)<input id="pc-lev" type="text" inputmode="decimal" value="27"></label>
       <label>Gebühr pro Seite (%)<input id="pc-fee" type="text" inputmode="decimal" value="0.06"></label>
       <label>EUR→USDT Kurs<input id="pc-fx" type="text" inputmode="decimal" value="1.08"></label>
@@ -1106,13 +1111,14 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
 (()=>{
   const $=id=>document.getElementById(id);
   const keep=['pc-coin','pc-r','pc-crv','pc-lev','pc-fee','pc-fx'];
-  let dir='long', adj='tp', fxLoaded=false, liveEntry=true, timer=null, lastPrice=null, lastAt=0, busy=false;
+  let slPct=false, dir='long', adj='tp', fxLoaded=false, liveEntry=true, timer=null, lastPrice=null, lastAt=0, busy=false;
 
   try{
     const s=JSON.parse(localStorage.getItem('pc-v')||'{}');
     keep.forEach(i=>{if(s[i]!=null)$(i).value=s[i]});
     if(s.dir)dir=s.dir;
     if(s.adj)adj=s.adj;
+    if(s.slPct)slPct=true;
     if(!s.lev27){$('pc-lev').value='27';}
   }catch(e){}
 
@@ -1127,7 +1133,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
   const CRVS=[1,1.5,2,3,4,5,10,20];
 
   function save(){
-    try{const s={dir,adj,lev27:1};keep.forEach(i=>s[i]=$(i).value);localStorage.setItem('pc-v',JSON.stringify(s))}catch(e){}
+    try{const s={dir,adj,slPct,lev27:1};keep.forEach(i=>s[i]=$(i).value);localStorage.setItem('pc-v',JSON.stringify(s))}catch(e){}
   }
 
   function chips(){
@@ -1212,7 +1218,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
     $('pc-tp').readOnly=(a==='tp');
     $('pc-sl').readOnly=(a==='sl');
     $('pc-tp-l').firstChild.nodeValue=a==='tp'?'Take-Profit (auto)':'Take-Profit (USDT)';
-    $('pc-sl-l').firstChild.nodeValue=a==='sl'?'Stop-Loss (auto)':'Stop-Loss (Preis oder %)';
+    $('pc-sl-l').firstChild.nodeValue=a==='sl'?'Stop-Loss (auto)':(slPct?'Stop-Loss Abstand (%)':'Stop-Loss (USDT)');$('pc-slmode').style.display=a==='sl'?'none':'';$('pc-slchips').style.display=(a==='tp'&&slPct)?'flex':'none';
     calc();
   }
 
@@ -1235,7 +1241,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
     // CRV wie im Chart: TP-Abstand = CRV × SL-Abstand
     if(adj==='tp'){
       const slRaw=String($('pc-sl').value).trim();
-      if(/%$/.test(slRaw)){const pc=f(slRaw)/100;SL=pc>0?rp(long?E*(1-pc):E*(1+pc)):NaN;}
+      if(slPct||/%$/.test(slRaw)){const pc=f(slRaw)/100;SL=pc>0?rp(long?E*(1-pc):E*(1+pc)):NaN;}
       else SL=f(slRaw);
       if(!(SL>0)) return err('Stop-Loss eingeben – der Take-Profit wird aus dem CRV berechnet.');
       if(long?SL>=E:SL<=E) return err('Stop-Loss muss bei '+(long?'Long UNTER':'Short ÜBER')+' dem Einstieg liegen.');
@@ -1304,10 +1310,16 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
   $('pc-g').addEventListener('input',syncFromGoal);
   document.querySelectorAll('#pc-box input').forEach(i=>i.addEventListener('input',calc));
   document.querySelectorAll('.pc-dir button').forEach(b=>b.onclick=()=>setDir(b.dataset.d));
-  document.querySelectorAll('.pc-adj button').forEach(b=>b.onclick=()=>setAdj(b.dataset.a));
+  document.querySelectorAll('.pc-adj button').forEach(b=>b.onclick=()=>{if(b.dataset.a==='tp'&&adj==='sl'&&slPct)$('pc-sl').value='';setAdj(b.dataset.a);});
+  function slModeUI(){$('pc-slmode').textContent=slPct?'%':'$';$('pc-sl').placeholder=slPct?'z.B. 0,8':'Preis';
+    $('pc-slchips').innerHTML=[0.25,0.5,0.75,1,1.5,2].map(v=>'<button class="pc-chip'+(f($('pc-sl').value)===v?' on':'')+'" data-p="'+v+'">'+String(v).replace('.',',')+' %</button>').join('');
+    $('pc-slchips').querySelectorAll('.pc-chip').forEach(x=>x.onclick=()=>{$('pc-sl').value=x.dataset.p;slModeUI();calc();});
+    setAdj(adj);}
+  $('pc-slmode').onclick=()=>{slPct=!slPct;$('pc-sl').value='';slModeUI();};
+  $('pc-sl').addEventListener('input',()=>{if(slPct)$('pc-slchips').querySelectorAll('.pc-chip').forEach(x=>x.classList.toggle('on',+x.dataset.p===f($('pc-sl').value)));});
   chips(); syncFromCrv();
   dir=dir; document.querySelectorAll('.pc-dir button').forEach(b=>b.classList.toggle('on',b.dataset.d===dir));
-  setAdj(adj);
+  slModeUI();
 })();
 </script>
 
