@@ -1067,7 +1067,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
 <button id="pc-btn" title="Positionsrechner">🧮</button>
 <div id="pc-modal">
   <div id="pc-box">
-    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v5 · Bitget</small></span><button id="pc-x">×</button></h3>
+    <h3><span>Positionsrechner <small style="font-size:11px;color:var(--muted);font-weight:500">v6 · Bitget</small></span><button id="pc-x">×</button></h3>
     <div id="pc-chips"></div>
     <input id="pc-coin" value="BTC" autocomplete="off" autocapitalize="characters" placeholder="Coin suchen, z.B. WIF">
     <div id="pc-live"></div>
@@ -1092,9 +1092,9 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
       <button data-a="sl">Stop-Loss</button>
     </div>
     <div class="pc-grid">
-      <label id="pc-sl-l">Stop-Loss (USDT)<input id="pc-sl" type="text" inputmode="decimal"></label>
+      <label id="pc-sl-l">Stop-Loss (USDT)<input id="pc-sl" type="text" inputmode="decimal" placeholder="Preis oder z.B. 0,8%"></label>
       <label id="pc-tp-l">Take-Profit (USDT)<input id="pc-tp" type="text" inputmode="decimal"></label>
-      <label>Hebel (x)<input id="pc-lev" type="text" inputmode="decimal" value="47"></label>
+      <label>Hebel (x)<input id="pc-lev" type="text" inputmode="decimal" value="27"></label>
       <label>Gebühr pro Seite (%)<input id="pc-fee" type="text" inputmode="decimal" value="0.06"></label>
       <label>EUR→USDT Kurs<input id="pc-fx" type="text" inputmode="decimal" value="1.08"></label>
     </div>
@@ -1113,6 +1113,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
     keep.forEach(i=>{if(s[i]!=null)$(i).value=s[i]});
     if(s.dir)dir=s.dir;
     if(s.adj)adj=s.adj;
+    if(!s.lev27){$('pc-lev').value='27';}
   }catch(e){}
 
   const f=v=>parseFloat(String(v).replace(',','.'));
@@ -1126,7 +1127,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
   const CRVS=[1,1.5,2,3,4,5,10,20];
 
   function save(){
-    try{const s={dir,adj};keep.forEach(i=>s[i]=$(i).value);localStorage.setItem('pc-v',JSON.stringify(s))}catch(e){}
+    try{const s={dir,adj,lev27:1};keep.forEach(i=>s[i]=$(i).value);localStorage.setItem('pc-v',JSON.stringify(s))}catch(e){}
   }
 
   function chips(){
@@ -1211,7 +1212,7 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
     $('pc-tp').readOnly=(a==='tp');
     $('pc-sl').readOnly=(a==='sl');
     $('pc-tp-l').firstChild.nodeValue=a==='tp'?'Take-Profit (auto)':'Take-Profit (USDT)';
-    $('pc-sl-l').firstChild.nodeValue=a==='sl'?'Stop-Loss (auto)':'Stop-Loss (USDT)';
+    $('pc-sl-l').firstChild.nodeValue=a==='sl'?'Stop-Loss (auto)':'Stop-Loss (Preis oder %)';
     calc();
   }
 
@@ -1233,7 +1234,9 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
 
     // CRV wie im Chart: TP-Abstand = CRV × SL-Abstand
     if(adj==='tp'){
-      SL=f($('pc-sl').value);
+      const slRaw=String($('pc-sl').value).trim();
+      if(/%$/.test(slRaw)){const pc=f(slRaw)/100;SL=pc>0?rp(long?E*(1-pc):E*(1+pc)):NaN;}
+      else SL=f(slRaw);
       if(!(SL>0)) return err('Stop-Loss eingeben – der Take-Profit wird aus dem CRV berechnet.');
       if(long?SL>=E:SL<=E) return err('Stop-Loss muss bei '+(long?'Long UNTER':'Short ÜBER')+' dem Einstieg liegen.');
       TP=rp(long?E+C*(E-SL):E-C*(SL-E));
@@ -1266,9 +1269,9 @@ if(error)setMsg('⚠️ '+(/Invalid login/i.test(error.message)?'E-Mail oder Pas
     w+='<div class="pc-warn" style="color:var(--muted)">'+(spec?'Preise & Menge auf Bitget-Schritte gerundet. ':'')+'Liq. ist eine Schätzung – die echte liegt etwas näher.</div>';
 
     $('pc-out').innerHTML=
-      '<div class="pc-row pc-big"><span>Menge</span><b>'+n(qty,qd)+' '+unit+'</b></div>'+
+      '<div class="pc-row pc-big"><span>Margin für Bitget ('+n(L,0)+'x)</span><b>'+n(margin)+' USDT</b></div>'+
+      '<div class="pc-row"><span>Menge</span><b>'+n(qty,qd)+' '+unit+'</b></div>'+
       '<div class="pc-row"><span>Positionsgröße</span><b>'+n(notional)+' USDT</b></div>'+
-      '<div class="pc-row"><span>Margin ('+n(L,0)+'x)</span><b>'+n(margin)+' USDT</b></div>'+
       '<div class="pc-row"><span>Stop-Loss</span><b style="color:var(--red)">'+n(SL,pd)+'</b></div>'+
       '<div class="pc-row"><span>Take-Profit</span><b style="color:var(--green)">'+n(TP,pd)+'</b></div>'+
       '<div class="pc-row"><span>Verlust bei SL</span><b style="color:var(--red)">−'+n(lossU/fx)+' € <small style="color:var(--muted)">(inkl. Geb. −'+n(lossNet/fx)+')</small></b></div>'+
