@@ -583,7 +583,11 @@ return '<div class="trade" style="border-left-color:'+(up?"var(--green)":"var(--
 '<span class="sm muted">'+esc(t.session)+'</span>'+
 '<span class="chip" style="color:'+GRADE_COLOR[t.grade]+';border-color:'+GRADE_COLOR[t.grade]+'">'+t.grade+'</span>'+
 '<span class="sm muted" style="text-transform:uppercase">'+esc(t.model)+'</span>'+
-'<button class="btn" style="margin-left:auto;padding:3px 9px" data-action="del" data-v="'+t.id+'">✕</button></div>'+
+(t.bg?'<span class="chip" style="color:#7FB3FF;border-color:#7FB3FF">Bitget</span>':"")+
+(t.bgNew?'<span class="chip" style="color:var(--gold);border-color:var(--gold)">Noch bewerten</span>':"")+
+'<button class="btn" style="margin-left:auto;padding:3px 9px" data-action="edit" data-v="'+t.id+'" aria-label="Trade bearbeiten">✎</button>'+
+'<button class="btn" style="padding:3px 9px" data-action="del" data-v="'+t.id+'">✕</button></div>'+
+(t.bg&&t.bg.entry?'<div class="sm muted mono" style="margin-bottom:8px">'+t.bg.entry+' → '+t.bg.exit+' · Größe '+t.bg.size+(t.bg.fees?' · Gebühren '+usd(t.bg.fees):'')+'</div>':"")+
 ((!t.plan||t.tags.length)?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+
 (!t.plan?'<span class="chip on-bad">Nicht am Plan</span>':"")+
 t.tags.map(x=>'<span class="chip '+(x==="Perfekte Ausführung"?"on-good":"on-bad")+'">'+x+'</span>').join("")+'</div>':"")+
@@ -652,7 +656,7 @@ tableCard("Nach Wochentag",groupStats(m.t,t=>WEEKDAYS[new Date(t.date).getDay()]
 function viewForm(){
 if(!draft)draft={date:todayISO(),symbol:"XAUUSD",dir:"LONG",session:"NY AM",grade:"A",model:"",pnl:"",r:"",plan:true,tags:[],shots:[],why:""};
 const d=draft, valid=d.pnl!==""&&d.symbol.trim()!=="";
-return '<div class="sechead" style="margin:6px 2px 12px"><span class="sec">Neuer Trade</span></div><div class="card"><div class="grid gl2">'+
+return '<div class="sechead" style="margin:6px 2px 12px"><span class="sec">'+(d._edit?'Trade bearbeiten':'Neuer Trade')+'</span></div><div class="card"><div class="grid gl2">'+
 '<div class="field"><div class="lbl">Datum</div><input type="date" data-field="date" value="'+d.date+'"></div>'+
 '<div class="field"><div class="lbl">Symbol</div><input data-field="symbol" value="'+esc(d.symbol)+'" placeholder="XAUUSD"></div>'+
 '<div class="field"><div class="lbl">Richtung</div><div class="seg">'+
@@ -681,7 +685,7 @@ d.shots.map(function(id){return '<div class="shotbox">'+shotImg(id)+
 '<div class="field"><div class="lbl">Warum? (der wichtigste Teil)</div>'+
 '<textarea rows="4" data-field="why" placeholder="Warum der Entry, was hast du gesehen, was machst du wieder so?">'+esc(d.why)+'</textarea></div>'+
 '<div style="display:flex;gap:8px">'+
-'<button class="btn primary" data-action="saveTrade" '+(valid?"":"disabled")+'>Trade speichern</button>'+
+'<button class="btn primary" data-action="saveTrade" '+(valid?"":"disabled")+'>'+(d._edit?'Änderungen speichern':'Trade speichern')+'</button>'+
 '<button class="btn" data-action="cancel">Abbrechen</button></div></div>';
 }
 function viewSettings(){
@@ -790,23 +794,32 @@ else if(a==="sessSave"){const val=document.getElementById("sessNote").value.trim
 if(val)S.notes[k]=val;else delete S.notes[k];save();render();startTicker();
 const b=document.getElementById("sessBtn");if(b){b.textContent="✓ Festgehalten";setTimeout(function(){const x=document.getElementById("sessBtn");if(x)x.textContent="Festhalten";},1500);}
 return;}
+else if(a==="edit"){const tr=S.trades.find(t=>String(t.id)===v);if(!tr)return;
+draft=Object.assign({},tr,{tags:(tr.tags||[]).slice(),shots:(tr.shots||[]).slice(),pnl:String(tr.pnl),r:tr.r==null?"":String(tr.r),
+model:tr.model==="Kein Modell"?"":(tr.model||""),why:tr.why===NOTE_FALLBACK?"":(tr.why||""),_edit:tr.id,_orig:(tr.shots||[]).slice()});
+S.view="new";window.scrollTo(0,0);}
 else if(a==="del"){const tr=S.trades.find(t=>String(t.id)===v);if(tr)deleteShots(tr.shots);
+if(tr&&tr.bg){const sk=Array.isArray(S.notes._bitgetSkip)?S.notes._bitgetSkip:[];if(sk.indexOf(tr.bg.id)<0)sk.push(tr.bg.id);S.notes._bitgetSkip=sk;}
 S.trades=S.trades.filter(t=>String(t.id)!==v);save();}
 else if(a==="openShot"){openShot(v);return;}
 else if(a==="zoomShot"){el.classList.toggle("zoom");return;}
 else if(a==="closeShot"){document.getElementById("lightbox").hidden=true;return;}
 else if(a==="replayIntro"){playIntro();return;}
 else if(a==="plan")draft.plan=v==="1";
-else if(a==="rmShot"){draft.shots=draft.shots.filter(x=>x!==v);delete SHOTS[v];}
+else if(a==="rmShot"){draft.shots=draft.shots.filter(x=>x!==v);if((draft._orig||[]).indexOf(v)<0)delete SHOTS[v];}
 else if(a==="set")draft[el.dataset.k]=v;
 else if(a==="tag")draft.tags=draft.tags.indexOf(v)>=0?draft.tags.filter(x=>x!==v):draft.tags.concat([v]);
-else if(a==="cancel"){if(draft)draft.shots.forEach(id=>{delete SHOTS[id];});draft=null;S.view="dash";}
+else if(a==="cancel"){const ed=draft&&draft._edit;if(draft)draft.shots.forEach(id=>{if((draft._orig||[]).indexOf(id)<0)delete SHOTS[id];});draft=null;S.view=ed?"trades":"dash";}
 else if(a==="saveTrade"){
-const shots=draft.shots.slice();
-shots.forEach(function(id){IDB.set(id,SHOTS[id]).catch(function(){alert("Screenshot konnte nicht gespeichert werden.");});});
-S.trades.push(Object.assign({},draft,{id:Date.now(),plan:draft.plan!==false,shots:shots,
+const shots=draft.shots.slice(),orig=draft._orig||[],ed=draft._edit;
+shots.filter(id=>orig.indexOf(id)<0).forEach(function(id){IDB.set(id,SHOTS[id]).catch(function(){alert("Screenshot konnte nicht gespeichert werden.");});});
+const obj=Object.assign({},draft,{id:ed||Date.now(),plan:draft.plan!==false,shots:shots,
 pnl:Number(draft.pnl),r:draft.r===""?null:Number(draft.r),
-model:draft.model||"Kein Modell",why:draft.why||NOTE_FALLBACK}));
+model:draft.model||"Kein Modell",why:draft.why||NOTE_FALLBACK});
+delete obj._edit;delete obj._orig;delete obj.bgNew;
+if(ed){const gone=orig.filter(id=>shots.indexOf(id)<0);if(gone.length)deleteShots(gone);
+S.trades=S.trades.map(t=>t.id===ed?obj:t);}
+else S.trades.push(obj);
 save();draft=null;S.view="trades";window.scrollTo(0,0);}
 else if(a==="export"){exportData();return;}
 else if(a==="import"){document.getElementById("importer").click();return;}
@@ -962,6 +975,7 @@ SY.base=S.updatedAt;
 lset('ok','1');
 await pullShots();
 SY.last=Date.now();setMsg('✓ Synchronisiert · '+tm(SY.last));
+if(!BG.auto){BG.auto=true;setTimeout(function(){bitgetImport(true);},500);}
 }catch(e){
 setMsg('⚠️ Sync-Fehler: '+(e.message||e)+(/relation|does not exist|schema cache/i.test(e.message||'')?' – SQL in Supabase ausführen!':''),true);
 }finally{
@@ -970,6 +984,49 @@ if(SY.again){SY.again=false;setTimeout(sync,300);}
 }
 }
 function schedule(){if(!SY.user)return;clearTimeout(SY.timer);SY.timer=setTimeout(sync,1500);}
+
+/* ---- Bitget-Import (über Supabase Edge Function, read-only) ---- */
+const BG_FN='https://amqjsrhbomwenkhueehm.supabase.co/functions/v1/bitget-sync';
+const BG_PUB='sb_publishable_FxLMPFgWxoYqNzQdBtQ2hA_94RN51-4';
+const BG={busy:false,auto:false,msg:'',err:false};
+function bgMsg(t,err){BG.msg=t;BG.err=!!err;const el=document.getElementById('bg-status');if(el){el.textContent=t;el.style.color=err?'var(--red)':'var(--muted)';}}
+function bgSession(ts){const d=new Date(ts),h=d.getHours()+d.getMinutes()/60;
+return h>=8&&h<14?'London':h>=14&&h<18?'NY AM':(h>=18||h<1)?'NY PM':'Asia';}
+function bgTrade(p,i){
+return{id:(p.close||Date.now())+i,date:isoOf(new Date(p.close)),symbol:p.symbol||'?',dir:p.side==='short'?'SHORT':'LONG',
+session:bgSession(p.open||p.close),grade:'B',model:'Kein Modell',pnl:Math.round(Number(p.pnl||0)*100)/100,r:null,plan:true,
+tags:[],shots:[],why:NOTE_FALLBACK,bgNew:true,
+bg:{id:String(p.id),entry:p.entry,exit:p.exit,size:p.size,fees:Math.round(Number(p.fees||0)*100)/100,open:p.open,close:p.close}};
+}
+async function bitgetImport(silent){
+if(!SY.user){bgMsg('Erst oben bei Synchronisierung einloggen.',true);return;}
+if(BG.busy)return;BG.busy=true;bgMsg('Hole Trades von Bitget…');
+try{
+const skip=new Set((Array.isArray(S.notes._bitgetSkip)?S.notes._bitgetSkip:[]).map(String));
+const have=new Set(S.trades.filter(t=>t.bg).map(t=>String(t.bg.id)));
+const last=S.trades.reduce((m,t)=>t.bg&&t.bg.close>m?t.bg.close:m,0);
+const since=last?last-3*86400000:Date.now()-30*86400000;
+const {data}=await sb.auth.getSession();const s=data&&data.session;
+if(!s)throw new Error('Nicht eingeloggt');
+const r=await fetch(BG_FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.access_token,'apikey':BG_PUB},body:JSON.stringify({since:since})});
+const j=await r.json().catch(()=>({}));
+if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+const add=(j.positions||[]).filter(p=>!have.has(String(p.id))&&!skip.has(String(p.id))).map(bgTrade);
+if(add.length){S.trades=S.trades.concat(add);save();if(S.view!=='new'){render();startTicker();}}
+bgMsg((add.length?'✓ '+add.length+' neue'+(add.length===1?'r Trade':' Trades')+' importiert':'✓ Keine neuen Trades')+' · '+tm(Date.now()));
+}catch(e){
+const m=e.message||String(e);
+if(silent&&/Keys fehlen|berechtigt/.test(m))bgMsg('');else bgMsg('⚠️ '+m,true);
+}finally{BG.busy=false;}
+}
+function bgCard(){
+if(!SY.user)return '';
+return '<div class="card" style="margin-bottom:10px"><div class="lbl">Bitget</div>'+
+'<div class="sm muted" style="line-height:1.6;margin-bottom:6px">Holt geschlossene Futures-Positionen automatisch beim Öffnen (letzte 30 Tage beim ersten Mal). Note, Tags und WARUM trägst du danach per ✎ nach.</div>'+
+'<div class="sm" id="bg-status" style="line-height:1.6;margin-bottom:10px;color:'+(BG.err?'var(--red)':'var(--muted)')+'">'+esc(BG.msg||'')+'</div>'+
+'<button class="btn" data-bitget="now">Jetzt von Bitget holen</button></div>';
+}
+document.addEventListener('click',function(e){if(e.target.closest('[data-bitget]'))bitgetImport(false);});
 
 sb.auth.onAuthStateChange(function(ev,session){
 const u=session?session.user:null,changed=(u&&u.id)!==(SY.user&&SY.user.id);
@@ -997,7 +1054,7 @@ const _vs=viewSettings;
 viewSettings=function(){
 let h=_vs();
 const m='<div class="card"><div class="lbl">Daten</div>';
-h=h.replace(m,card()+m);
+h=h.replace(m,card()+bgCard()+m);
 if(SY.user)h=h.replace('Alles wird nur auf diesem Gerät gespeichert. ','Deine Daten werden mit deinem Konto synchronisiert. ');
 return h;
 };
