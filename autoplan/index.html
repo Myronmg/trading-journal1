@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Autoplan">
+<meta name="theme-color" content="#15171c">
+<title>Familien-Autoplan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f4f1;--card:#fff;--ink:#15171c;--mute:#6c707a;--line:#e6e4df;--cx:#b4232a;--m2:#0e7c6b;--ok:#15803d;--err:#b91c1c;--r:16px}
+@media (prefers-color-scheme:dark){:root{--bg:#101113;--card:#1a1c20;--ink:#f1f1f3;--mute:#9a9ea8;--line:#2a2d33;--cx:#e5575d;--m2:#2bb39b;--ok:#4ade80;--err:#f87171}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.35}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{max-width:720px;margin:0 auto;padding:18px 16px 120px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+h1{font-size:23px;margin:0;letter-spacing:-.02em}
+.sub{color:var(--mute);font-size:13px;margin-top:2px}
+.mute{color:var(--mute)}
+.iconbtn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center}
+.banner{background:color-mix(in srgb,#f59e0b 14%,var(--card));border:1px solid color-mix(in srgb,#f59e0b 40%,transparent);border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.cars{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.car{text-align:left;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:var(--r);padding:12px 12px 11px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.car-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.car-top b{font-size:16px}
+.car-line{font-size:13px;min-height:34px}
+.car-meta{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.pill.free{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.pill.busy{background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute);margin:24px 0 10px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;margin:0 -16px;padding-left:16px;padding-right:16px}
+.days::-webkit-scrollbar{display:none}
+.day{flex:0 0 50px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:7px 0 6px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.day span{font-size:11px;color:var(--mute)}
+.day b{font-size:17px}
+.day i{display:flex;gap:3px;height:6px}
+.day em{width:6px;height:6px;border-radius:50%}
+.day.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.day.sel span{color:inherit;opacity:.75}
+.dayrow{display:flex;justify-content:space-between;align-items:center;margin:10px 0 8px}
+.dayrow b{font-size:15px}
+.jump{position:relative;font-size:13px;color:var(--mute);border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;overflow:hidden}
+.jump input{position:absolute;inset:0;opacity:0;width:100%}
+.tl{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.tl-head,.tl-body{display:grid;grid-template-columns:40px 1fr 1fr;position:relative}
+.tl-head{border-bottom:1px solid var(--line);font-size:13px;font-weight:600}
+.tl-head div{padding:9px 8px;display:flex;align-items:center;gap:6px}
+.tl-head i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.labs{position:relative}
+.lab{position:absolute;left:0;width:40px;text-align:center;font-size:11px;color:var(--mute);transform:translateY(-50%)}
+.lab:first-child{transform:none;top:2px!important}
+.col{position:relative;border-left:1px solid var(--line);cursor:copy}
+.gl{position:absolute;left:0;right:0;border-top:1px solid var(--line);opacity:.7}
+.blk{position:absolute;left:4px;right:4px;border-radius:9px;background:color-mix(in srgb,var(--c) 15%,var(--card));border-left:3px solid var(--c);padding:4px 7px;font-size:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;line-height:1.25}
+.blk span{color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now{position:absolute;left:40px;right:0;height:2px;background:#ef4444;pointer-events:none}
+.now:before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#ef4444}
+.hint{font-size:12px;color:var(--mute);margin-top:6px}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.item>i{flex:0 0 4px;align-self:stretch;border-radius:4px;background:var(--c)}
+.item .mute{font-size:13px;margin-top:2px}
+.empty{color:var(--mute);font-size:14px;padding:14px;text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:14px}
+.fab{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);border:0;border-radius:99px;padding:15px 28px;font-weight:600;font-size:16px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:20}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:flex-end;justify-content:center;z-index:50;animation:fade .15s}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:up .2s ease-out}
+@media(min-width:600px){.sheet-bg{align-items:center}.sheet{border-radius:22px}}
+@keyframes up{from{transform:translateY(30px);opacity:.6}}@keyframes fade{from{opacity:0}}
+.grab{width:38px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 10px}
+.sheet h3{margin:4px 0 12px;font-size:19px}
+label{display:block;font-size:12px;font-weight:600;color:var(--mute);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+input,select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:10px 11px;width:100%;min-height:44px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2 input{margin-bottom:6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.chips button{border:1px solid var(--line);background:var(--bg);border-radius:11px;padding:10px 14px;font-weight:500}
+.seg button{flex:1}
+.seg button.on{border-color:var(--c,var(--ink));background:color-mix(in srgb,var(--c,var(--ink)) 14%,var(--card));box-shadow:inset 0 0 0 1px var(--c,var(--ink))}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chips .ghost{border-style:dashed;color:var(--mute)}
+.chipin{width:130px;min-height:42px;padding:8px 10px}
+.msg{margin-top:14px;padding:10px 12px;border-radius:11px;font-size:14px}
+.msg.ok{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok)}
+.msg.err{background:color-mix(in srgb,var(--err) 12%,transparent);color:var(--err)}
+.msg.err div{color:var(--ink);font-size:13px;margin-top:3px}
+.actions{display:flex;gap:8px;margin-top:18px}
+.actions.col{flex-direction:column}
+.btn{flex:1;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:13px;font-weight:600}
+.btn.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{color:var(--err)}
+.btn.swap{width:100%;margin-top:8px}
+.btn:disabled{opacity:.5}
+.dhead{display:flex;gap:12px;align-items:center}
+.dhead>i{width:6px;align-self:stretch;border-radius:6px;background:var(--c)}
+.dhead h3{margin:0}
+.mem{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;border-bottom:1px solid var(--line)}
+.mem button{border:0;background:none;color:var(--mute);font-size:20px;padding:0 6px}
+.row{display:flex;gap:8px}
+.row .btn{flex:0 0 auto;padding:0 18px}
+.info{font-size:13px;color:var(--mute);background:var(--bg);border-radius:12px;padding:11px 12px;margin-top:18px}
+#toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;white-space:nowrap}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap" id="main">
+  <header>
+    <div><h1>Autoplan</h1><div class="sub" id="today"></div></div>
+    <button class="iconbtn" id="gear" aria-label="Familie verwalten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+  </header>
+  <div id="banner"></div>
+  <div class="cars" id="cars"></div>
+
+  <h2>Kalender</h2>
+  <div class="days" id="days"></div>
+  <div class="dayrow"><b id="dayLabel"></b><span class="jump">Datum wählen<input type="date" id="jump" aria-label="Datum wählen"></span></div>
+  <div class="tl" id="tl"></div>
+  <div class="hint">Tipp: In eine freie Stelle tippen, um dort zu buchen.</div>
+
+  <h2>Als Nächstes</h2>
+  <div class="list" id="up"></div>
+</div>
+<button class="fab" id="fab">+ Auto buchen</button>
+<div id="toast"></div>
+
+<script>
+const CARS=[{id:'cx30',name:'CX-30',full:'Mazda CX-30',v:'--cx'},{id:'m2',name:'Mazda 2',full:'Mazda 2 Hybrid',v:'--m2'}];
+const TANK=['Voll','¾','½','¼','Reserve'];
+const DAY=864e5,PX=46;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const carById=id=>CARS.find(c=>c.id===id);
+const sod=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()};
+const addDays=(t,n)=>{const d=new Date(t);d.setDate(d.getDate()+n);return d.getTime()};
+const sameDay=(a,b)=>sod(a)===sod(b);
+const fmtT=t=>new Date(t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+const fmtD=t=>new Date(t).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+const relDay=t=>{const d=Math.round((sod(t)-sod(Date.now()))/DAY);return d===0?'Heute':d===1?'Morgen':d===-1?'Gestern':fmtD(t)};
+const when=b=>sameDay(b.start,b.end-1)?`${relDay(b.start)}, ${fmtT(b.start)}–${fmtT(b.end)}`:`${relDay(b.start)} ${fmtT(b.start)} – ${relDay(b.end)} ${fmtT(b.end)}`;
+const pad=n=>String(n).padStart(2,'0');
+const toDateInput=t=>{const d=new Date(t);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const toTimeInput=t=>{const d=new Date(t);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const fromInputs=(date,time)=>{const[y,m,d]=date.split('-').map(Number);const[h,mi]=time.split(':').map(Number);return new Date(y,m-1,d,h,mi).getTime()};
+const LS={get(k,d){try{const v=localStorage.getItem('autoplan.'+k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem('autoplan.'+k,v)}catch(e){}}};
+const msg=(k,h)=>`<div class="msg ${k}">${h}</div>`;
+
+const state={bookings:[],cars:{},members:[],loaded:false,slow:false,selDay:sod(Date.now()),me:LS.get('me',''),tlH0:6,writeOk:false};
+const canWrite=true;
+const SB_URL='https://amqjsrhbomwenkhueehm.supabase.co';
+const SB_KEY='sb_publishable_FxLMPFgWxoYqNzQdBtQ2hA_94RN51-4';
+let CODE='';
+
+/* ---------- Speicher (Supabase) ---------- */
+async function rpc(fn,args){
+  const r=await fetch(`${SB_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_code:CODE,...args})});
+  if(!r.ok){let e={};try{e=await r.json()}catch(_){}throw{code:e.code||String(r.status),message:e.message||''}}
+  return r.json();
+}
+let loading=false;
+async function refresh(){
+  if(!CODE||loading)return;loading=true;
+  try{const d=await rpc('autoplan_get',{});
+    state.bookings=(d.bookings||[]).filter(valid);state.cars=d.cars||{};state.members=Array.isArray(d.members)?d.members:[];
+    state.loaded=true;state.slow=false;render()}
+  catch(e){if(e.code==='28000'){logout(true)}else{state.slow=true;state.loaded=true;render()}}
+  finally{loading=false}
+}
+const store={
+  async addBooking(b){await rpc('autoplan_add',{p_car:b.car,p_who:b.who,p_what:b.what,p_start:b.start,p_end:b.end,p_weeks:b.weeks||1})},
+  async setBooking(id,b){await rpc('autoplan_update',{p_id:id,p_car:b.car,p_who:b.who,p_what:b.what||'',p_start:b.start,p_end:b.end})},
+  async delBooking(id){await rpc('autoplan_delete',{p_id:id})},
+  async setCar(id,d){await rpc('autoplan_set_car',{p_car:id,p_tank:d.tank,p_ort:d.ort,p_note:d.note})},
+  async setMembers(m){await rpc('autoplan_set_members',{p_members:m})}
+};
+async function write(fn){
+  try{await fn();await refresh();return true}
+  catch(e){
+    if(e&&e.code==='23P01')toast('Überschneidung – jemand war schneller');
+    else if(e&&e.code==='28000')logout(true);
+    else toast('Speichern fehlgeschlagen – Internet prüfen');
+    await refresh();return false}
+}
+let toastT;function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200)}
+
+/* ---------- Logik ---------- */
+function carState(id){const now=Date.now();const bs=state.bookings.filter(b=>b.car===id&&b.end>now).sort((a,b)=>a.start-b.start);return{cur:bs.find(b=>b.start<=now),next:bs.find(b=>b.start>now)}}
+function conflicts(carId,occs,ignoreId){const out=[];occs.forEach(o=>state.bookings.forEach(b=>{if(b.car===carId&&b.id!==ignoreId&&b.start<o.end&&o.start<b.end&&!out.includes(b))out.push(b)}));return out.sort((a,b)=>a.start-b.start)}
+const valid=b=>b&&typeof b.start==='number'&&typeof b.end==='number'&&b.end>b.start&&carById(b.car)&&typeof b.who==='string';
+
+/* ---------- Render ---------- */
+function render(){
+  $('#today').textContent=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  renderBanner();renderCars();renderDays();renderTimeline();renderUpcoming();
+  $('#fab').style.display=canWrite?'':'none';
+}
+function renderBanner(){
+  const m=[];
+  if(state.slow)m.push('Keine Verbindung – Anzeige evtl. nicht aktuell.');
+  $('#banner').innerHTML=m.map(t=>`<div class="banner">${esc(t)}</div>`).join('');
+}
+function renderCars(){
+  const now=Date.now();
+  $('#cars').innerHTML=CARS.map(c=>{
+    const{cur,next}=carState(c.id);const st=state.cars[c.id]||{};
+    const pill=cur?'<span class="pill busy">Unterwegs</span>':'<span class="pill free">Frei</span>';
+    const line=cur?`<b>${esc(cur.who)}</b> · bis ${sameDay(cur.end,now)?fmtT(cur.end):relDay(cur.end)+' '+fmtT(cur.end)}${next&&next.start-cur.end<3*36e5?`<br><span class="mute">danach ${esc(next.who)}</span>`:''}`
+      :next?`<span class="mute">Nächste:</span> ${relDay(next.start)} ${fmtT(next.start)} · ${esc(next.who)}`:'<span class="mute">Keine Buchungen</span>';
+    const meta=[st.tank?'⛽ '+st.tank:'',st.ort||'',st.note||''].filter(Boolean).map(esc).join(' · ')||'Tank & Standort eintragen';
+    return `<button class="car" style="--c:var(${c.v})" data-car="${c.id}"><div class="car-top"><b>${c.name}</b>${pill}</div><div class="car-line">${line}</div><div class="car-meta">${meta}</div></button>`;
+  }).join('');
+}
+function renderDays(){
+  const t0=sod(Date.now());let h='';
+  for(let i=0;i<21;i++){const d=addDays(t0,i),e=addDays(t0,i+1),dt=new Date(d);
+    const cs=CARS.filter(c=>state.bookings.some(b=>b.car===c.id&&b.start<e&&b.end>d));
+    h+=`<button class="day${d===state.selDay?' sel':''}" data-day="${d}"><span>${i===0?'Heute':dt.toLocaleDateString('de-DE',{weekday:'short'}).replace('.','')}</span><b>${dt.getDate()}</b><i>${cs.map(c=>`<em style="background:var(${c.v})"></em>`).join('')}</i></button>`}
+  $('#days').innerHTML=h;
+  $('#dayLabel').textContent=relDay(state.selDay)==='Heute'?'Heute':new Date(state.selDay).toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  $('#jump').value=toDateInput(state.selDay);
+}
+function hourOf(t,day,end){if(t>=end)return 24;if(t<=day)return 0;const d=new Date(t);return d.getHours()+d.getMinutes()/60}
+function renderTimeline(){
+  const day=state.selDay,end=addDays(day,1);
+  const items=state.bookings.filter(b=>b.start<end&&b.end>day);
+  let h0=6,h1=23;
+  items.forEach(b=>{h0=Math.min(h0,Math.floor(hourOf(b.start,day,end)));h1=Math.max(h1,Math.ceil(hourOf(b.end,day,end)))});
+  const n=Date.now();if(n>=day&&n<end){const hn=hourOf(n,day,end);h0=Math.min(h0,Math.floor(hn));h1=Math.max(h1,Math.ceil(hn))}
+  h1=Math.min(Math.max(h1,h0+1),24);state.tlH0=h0;
+  const H=(h1-h0)*PX;
+  let labs='',lines='';
+  for(let h=h0;h<h1;h++)labs+=`<div class="lab" style="top:${(h-h0)*PX}px">${pad(h)}</div>`;
+  for(let h=h0+1;h<h1;h++)lines+=`<div class="gl" style="top:${(h-h0)*PX}px"></div>`;
+  const cols=CARS.map(c=>{
+    const bl=items.filter(b=>b.car===c.id).map(b=>{const s=hourOf(b.start,day,end),e=hourOf(b.end,day,end),top=(s-h0)*PX,ht=Math.max((e-s)*PX-3,26);
+      const t=sameDay(b.start,b.end-1)?`${fmtT(b.start)}–${fmtT(b.end)}`:`${b.start<day?'… ':fmtT(b.start)}–${b.end>end?' …':fmtT(b.end)}`;
+      return `<div class="blk" style="--c:var(${c.v});top:${top+1}px;height:${ht}px" data-id="${esc(b.id)}"><b>${esc(b.who)}</b><span>${t}</span>${b.what?`<span>${esc(b.what)}</span>`:''}</div>`}).join('');
+    return `<div class="col" data-col="${c.id}" style="height:${H}px">${lines}${bl}</div>`}).join('');
+  let now='';if(n>=day&&n<end)now=`<div class="now" style="top:${(hourOf(n,day,end)-h0)*PX}px"></div>`;
+  $('#tl').innerHTML=`<div class="tl-head"><div></div>${CARS.map(c=>`<div style="--c:var(${c.v})"><i></i>${c.name}</div>`).join('')}</div><div class="tl-body"><div class="labs" style="height:${H}px">${labs}</div>${cols}${now}</div>`;
+}
+function renderUpcoming(){
+  const now=Date.now();const ups=state.bookings.filter(b=>b.end>now).sort((a,b)=>a.start-b.start).slice(0,12);
+  $('#up').innerHTML=!state.loaded?'<div class="empty">Lade …</div>':ups.length?ups.map(b=>{const c=carById(b.car);
+    return `<button class="item" data-id="${esc(b.id)}" style="--c:var(${c.v})"><i></i><div><b>${esc(b.who)}</b> · ${c.name}${b.what?` <span class="mute">· ${esc(b.what)}</span>`:''}<div class="mute">${b.start<=now?'Jetzt unterwegs · bis '+fmtT(b.end):when(b)}</div></div></button>`}).join('')
+    :'<div class="empty">Noch nichts geplant. Tipp auf „Auto buchen“.</div>';
+}
+
+/* ---------- Sheets ---------- */
+function openSheet(html,locked){closeSheet();const bg=document.createElement('div');bg.className='sheet-bg';bg.innerHTML=`<div class="sheet"><div class="grab"></div>${html}</div>`;if(!locked)bg.addEventListener('click',e=>{if(e.target===bg)closeSheet()});document.body.appendChild(bg);return bg.querySelector('.sheet')}
+function closeSheet(){document.querySelector('.sheet-bg')?.remove()}
+
+function addNameInline(btn,onAdd){
+  const inp=document.createElement('input');inp.className='chipin';inp.placeholder='Name';inp.maxLength=20;btn.replaceWith(inp);inp.focus();
+  let done=false;const fin=async()=>{if(done)return;done=true;const v=inp.value.trim();
+    if(v&&!state.members.includes(v))await write(()=>store.setMembers([...state.members,v]));onAdd(v)};
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur()}});inp.addEventListener('blur',fin);
+}
+
+function openForm(opts={}){
+  if(!canWrite){toast('Nur Lesen');return}
+  const edit=opts.booking||null;
+  let car=edit?edit.car:(opts.car||'any');
+  let who=edit?edit.who:(state.members.includes(state.me)?state.me:'');
+  let start,end;
+  if(edit){start=edit.start;end=edit.end}
+  else{let base=opts.start;
+    if(base==null){const now=Date.now();if(state.selDay<=sod(now)){const x=new Date(now);x.setMinutes(x.getMinutes()<30?30:60,0,0);base=x.getTime()}else{const x=new Date(state.selDay);x.setHours(8,0,0,0);base=x.getTime()}}
+    start=base;end=base+2*36e5}
+  const s=openSheet(`<h3>${edit?'Buchung bearbeiten':'Auto buchen'}</h3>
+    <label>Auto</label><div class="seg" id="fCar">${CARS.map(c=>`<button data-v="${c.id}" style="--c:var(${c.v})">${c.name}</button>`).join('')}${edit?'':'<button data-v="any">Egal</button>'}</div>
+    <label>Wer fährt?</label><div class="chips" id="fWho"></div>
+    <div class="grid2"><div><label>Von</label><input type="date" id="fSD"><input type="time" id="fST" step="300"></div><div><label>Bis</label><input type="date" id="fED"><input type="time" id="fET" step="300"></div></div>
+    <label>Wohin / wofür <span style="text-transform:none;font-weight:400">(optional)</span></label><input id="fWhat" maxlength="60" placeholder="z. B. Training, Arbeit, Einkaufen">
+    ${edit?'':'<label>Wiederholen</label><select id="fRep"><option value="1">Einmalig</option><option value="4">Jede Woche · 4×</option><option value="8">Jede Woche · 8×</option><option value="12">Jede Woche · 12×</option></select>'}
+    <div id="fMsg"></div>
+    <div class="actions"><button class="btn" id="fCancel">Abbrechen</button><button class="btn pri" id="fSave">${edit?'Speichern':'Buchen'}</button></div>`);
+  const q=x=>s.querySelector(x);
+  q('#fSD').value=toDateInput(start);q('#fST').value=toTimeInput(start);q('#fED').value=toDateInput(end);q('#fET').value=toTimeInput(end);
+  q('#fWhat').value=edit?.what||'';
+  const setSeg=()=>{s.querySelectorAll('#fCar button').forEach(b=>b.classList.toggle('on',b.dataset.v===car));s.querySelectorAll('#fWho button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===who))};
+  const renderWho=()=>{q('#fWho').innerHTML=state.members.map(m=>`<button data-v="${esc(m)}">${esc(m)}</button>`).join('')+'<button data-add class="ghost">+ Name</button>';setSeg()};
+  renderWho();
+  q('#fCar').onclick=e=>{const b=e.target.closest('button');if(!b)return;car=b.dataset.v;setSeg();check()};
+  q('#fWho').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-add')){addNameInline(b,v=>{if(v)who=v;renderWho();check()});return}who=b.dataset.v;setSeg();check()};
+  let prevSD=q('#fSD').value;
+  q('#fSD').onchange=()=>{if(q('#fED').value===prevSD||q('#fED').value<q('#fSD').value)q('#fED').value=q('#fSD').value;prevSD=q('#fSD').value;check()};
+  q('#fST').onchange=()=>{const r=read();if(!isNaN(r.st)&&!(r.en>r.st)){const e=r.st+2*36e5;q('#fED').value=toDateInput(e);q('#fET').value=toTimeInput(e)}check()};
+  ['#fED','#fET','#fRep'].forEach(id=>{const el=q(id);if(el)el.onchange=check});
+  q('#fCancel').onclick=closeSheet;
+  function read(){const v=x=>q(x).value;return{st:v('#fSD')&&v('#fST')?fromInputs(v('#fSD'),v('#fST')):NaN,en:v('#fED')&&v('#fET')?fromInputs(v('#fED'),v('#fET')):NaN,rep:edit?1:+q('#fRep').value}}
+  let plan=null;
+  function check(){
+    plan=null;const m=q('#fMsg');const{st,en,rep}=read();
+    if(isNaN(st)||isNaN(en)){m.innerHTML='';return}
+    if(en<=st){m.innerHTML=msg('err','Ende muss nach dem Start liegen.');return}
+    const occs=[];for(let i=0;i<rep;i++)occs.push({start:addDays(st,7*i),end:addDays(en,7*i)});
+    const ign=edit?.id;
+    const confHtml=cf=>cf.slice(0,3).map(b=>`<div>• ${esc(b.who)} · ${when(b)}</div>`).join('')+(cf.length>3?`<div>… und ${cf.length-3} weitere</div>`:'');
+    if(car==='any'){
+      const free=CARS.filter(c=>!conflicts(c.id,occs,ign).length);
+      if(free.length){plan={car:free[0].id,occs};m.innerHTML=msg('ok',`${free.length===2?'Beide frei':'Nur '+free[0].name+' ist frei'} → <b>${free[0].name}</b> wird gebucht.`)}
+      else m.innerHTML=msg('err','Beide Autos sind in dem Zeitraum belegt:'+confHtml([...conflicts('cx30',occs,ign),...conflicts('m2',occs,ign)]));
+      return}
+    const cf=conflicts(car,occs,ign);
+    if(!cf.length){plan={car,occs};m.innerHTML=msg('ok',`✓ ${carById(car).name} ist frei${rep>1?` (alle ${rep} Termine)`:''}.`);return}
+    const other=CARS.find(c=>c.id!==car);const otherFree=!conflicts(other.id,occs,ign).length;
+    m.innerHTML=msg('err',`${carById(car).name} ist schon belegt:`+confHtml(cf))+(otherFree?`<button class="btn swap" id="fSwap">${other.name} ist frei – stattdessen nehmen</button>`:'');
+    q('#fSwap')?.addEventListener('click',()=>{car=other.id;setSeg();check()});
+  }
+  check();
+  q('#fSave').onclick=async()=>{
+    check();
+    if(!who){q('#fMsg').innerHTML=msg('err','Bitte auswählen, wer fährt.');return}
+    if(!plan)return;
+    const btn=q('#fSave');btn.disabled=true;
+    state.me=who;LS.set('me',who);
+    const what=q('#fWhat').value.trim().slice(0,60);
+    let ok=true;
+    if(edit){const{id,...rest}=edit;ok=await write(()=>store.setBooking(edit.id,{...rest,car:plan.car,who,what,start:plan.occs[0].start,end:plan.occs[0].end}))}
+    else ok=await write(()=>store.addBooking({car:plan.car,who,what,start:plan.occs[0].start,end:plan.occs[0].end,weeks:plan.occs.length}));
+    btn.disabled=false;
+    if(ok){closeSheet();toast(edit?'Gespeichert':`${carById(plan.car).name} gebucht ✓`);state.selDay=sod(plan.occs[0].start);render()}
+  };
+}
+
+function openDetail(id){
+  const b=state.bookings.find(x=>x.id===id);if(!b)return;
+  const c=carById(b.car),now=Date.now(),active=b.start<=now&&b.end>now;
+  const s=openSheet(`<div class="dhead" style="--c:var(${c.v})"><i></i><div><h3>${esc(b.who)} · ${c.full}</h3><div class="mute">${when(b)}</div>${b.what?`<div style="margin-top:6px">${esc(b.what)}</div>`:''}</div></div>
+    ${canWrite?`<div class="actions col">${active?'<button class="btn pri" id="dBack">Auto ist zurück – jetzt freigeben</button>':''}<button class="btn" id="dEdit">Bearbeiten</button><button class="btn danger" id="dDel">Löschen</button></div>`:''}`);
+  const q=x=>s.querySelector(x);
+  q('#dBack')?.addEventListener('click',async()=>{const{id:_,...rest}=b;if(await write(()=>store.setBooking(b.id,{...rest,end:Math.max(Date.now(),b.start+6e4)}))){closeSheet();toast(`${c.name} ist wieder frei`)}});
+  q('#dEdit')?.addEventListener('click',()=>openForm({booking:b}));
+  q('#dDel')?.addEventListener('click',async e=>{const btn=e.currentTarget;if(!btn.dataset.sure){btn.dataset.sure=1;btn.textContent='Wirklich löschen?';return}
+    if(await write(()=>store.delBooking(b.id))){closeSheet();toast('Gelöscht')}});
+}
+
+function openCar(id){
+  const c=carById(id),st=state.cars[id]||{};let tank=st.tank||'';
+  const{cur,next}=carState(id);
+  const status=cur?`Unterwegs mit <b>${esc(cur.who)}</b> · ${when(cur)}`:next?`Frei · nächste Buchung ${when(next)} (${esc(next.who)})`:'Frei · keine Buchungen';
+  const s=openSheet(`<div class="dhead" style="--c:var(${c.v})"><i></i><div><h3>${c.full}</h3><div class="mute">${status}</div></div></div>
+    <label>Tankstand</label><div class="seg" id="cTank" style="--c:var(${c.v})">${TANK.map(t=>`<button data-v="${t}">${t}</button>`).join('')}</div>
+    <label>Wo steht das Auto?</label><input id="cOrt" maxlength="40" placeholder="z. B. Garage, Straße, Bahnhof">
+    <label>Notiz</label><input id="cNote" maxlength="60" placeholder="z. B. Reifenwechsel fällig, Kratzer links">
+    ${st.updated?`<div class="hint">Zuletzt aktualisiert: ${relDay(st.updated)} ${fmtT(st.updated)}</div>`:''}
+    <div class="actions">${canWrite?`<button class="btn" id="cBook">Buchen</button><button class="btn pri" id="cSave">Speichern</button>`:'<button class="btn" id="cClose">Schließen</button>'}</div>`);
+  const q=x=>s.querySelector(x);
+  q('#cOrt').value=st.ort||'';q('#cNote').value=st.note||'';
+  const seg=()=>s.querySelectorAll('#cTank button').forEach(b=>b.classList.toggle('on',b.dataset.v===tank));seg();
+  if(!canWrite)s.querySelectorAll('input,#cTank button').forEach(e=>e.disabled=true);
+  q('#cTank').onclick=e=>{const b=e.target.closest('button');if(!b||!canWrite)return;tank=tank===b.dataset.v?'':b.dataset.v;seg()};
+  q('#cClose')?.addEventListener('click',closeSheet);
+  q('#cBook')?.addEventListener('click',()=>openForm({car:id}));
+  q('#cSave')?.addEventListener('click',async()=>{const d={tank,ort:q('#cOrt').value.trim().slice(0,40),note:q('#cNote').value.trim().slice(0,60),updated:Date.now()};
+    if(d.tank===(st.tank||'')&&d.ort===(st.ort||'')&&d.note===(st.note||'')){closeSheet();return}
+    if(await write(()=>store.setCar(id,d))){closeSheet();toast('Gespeichert')}});
+}
+
+function openSettings(){
+  const s=openSheet(`<h3>Familie</h3><div id="sList"></div>
+    ${canWrite?'<label>Person hinzufügen</label><div class="row"><input id="sNew" maxlength="20" placeholder="Name"><button class="btn pri" id="sAdd">+</button></div>':''}
+    <label>Link für die Familie</label><div class="row"><input id="sLink" readonly><button class="btn pri" id="sCopy">Kopieren</button></div>
+    <div class="info">Schick den Link per WhatsApp an die Familie. Öffnen → Teilen → „Zum Home-Bildschirm“, dann ist es wie eine App. Kein Account nötig.</div>
+    <div class="actions"><button class="btn danger" id="sOut">Abmelden</button><button class="btn" id="sClose">Fertig</button></div>`);
+  const q=x=>s.querySelector(x);
+  q('#sLink').value=shareLink();
+  q('#sCopy').onclick=async()=>{try{await navigator.clipboard.writeText(shareLink());toast('Link kopiert')}catch(e){q('#sLink').select();toast('Markieren & kopieren')}};
+  q('#sOut').onclick=()=>{closeSheet();logout(false)};
+  const list=()=>{q('#sList').innerHTML=state.members.length?state.members.map((m,i)=>`<div class="mem"><span>${esc(m)}${m===state.me?' <span class="mute">(ich)</span>':''}</span>${canWrite?`<button data-i="${i}" aria-label="Entfernen">×</button>`:''}</div>`).join(''):'<div class="mute">Noch niemand eingetragen.</div>'};
+  list();
+  q('#sList').onclick=async e=>{const b=e.target.closest('button[data-i]');if(!b)return;const m=state.members.filter((_,i)=>i!==+b.dataset.i);if(await write(()=>store.setMembers(m)))list()};
+  const add=async()=>{const v=q('#sNew').value.trim();if(!v||state.members.includes(v))return;if(await write(()=>store.setMembers([...state.members,v]))){q('#sNew').value='';list()}};
+  q('#sAdd')?.addEventListener('click',add);
+  q('#sNew')?.addEventListener('keydown',e=>{if(e.key==='Enter')add()});
+  q('#sClose').onclick=closeSheet;
+}
+
+/* ---------- Events ---------- */
+$('#main').addEventListener('click',e=>{
+  if(e.target.closest('#gear'))return openSettings();
+  const el=e.target.closest('[data-id],[data-car],[data-day],[data-col]');if(!el)return;
+  if(el.dataset.id)return openDetail(el.dataset.id);
+  if(el.dataset.car)return openCar(el.dataset.car);
+  if(el.dataset.day){state.selDay=+el.dataset.day;render();return}
+  if(el.dataset.col&&canWrite){const r=el.getBoundingClientRect();const hh=Math.floor((state.tlH0+(e.clientY-r.top)/PX)*2)/2;const d=new Date(state.selDay);d.setHours(Math.floor(hh),(hh%1)*60,0,0);openForm({car:el.dataset.col,start:d.getTime()})}
+});
+$('#jump').addEventListener('change',e=>{if(e.target.value){state.selDay=sod(fromInputs(e.target.value,'00:00'));render()}});
+$('#fab').addEventListener('click',()=>openForm());
+setInterval(render,60000);
+
+/* ---------- Start ---------- */
+const shareLink=()=>location.origin+location.pathname+'#'+CODE;
+function showLogin(err){
+  closeSheet();
+  const s=openSheet(`<h3>Familien-Autoplan</h3><div class="mute">Gib den Familiencode ein (steht im Link, den du bekommen hast).</div>
+    <label>Familiencode</label><input id="lCode" autocomplete="off" autocapitalize="off" placeholder="mazda-…">
+    ${err?msg('err','Code stimmt nicht.'):''}
+    <div class="actions"><button class="btn pri" id="lGo">Öffnen</button></div>`,true);
+  const go=()=>{const v=s.querySelector('#lCode').value.trim().toLowerCase();if(v)start(v)};
+  s.querySelector('#lGo').onclick=go;
+  s.querySelector('#lCode').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+}
+function logout(bad){CODE='';LS.set('code','');state.bookings=[];state.cars={};state.loaded=false;history.replaceState(null,'',location.pathname);render();showLogin(bad)}
+async function start(code){
+  CODE=code;
+  try{await rpc('autoplan_get',{})}catch(e){if(e.code==='28000'){logout(true);return}}
+  LS.set('code',CODE);closeSheet();
+  if(location.hash.slice(1)!==CODE)history.replaceState(null,'',location.pathname+'#'+CODE);
+  refresh();
+}
+function init(){
+  render();
+  const h=decodeURIComponent(location.hash.slice(1)).trim().toLowerCase();
+  const c=h||LS.get('code','');
+  if(c)start(c);else showLogin(false);
+}
+setInterval(()=>{if(document.visibilityState==='visible')refresh()},15000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+window.addEventListener('focus',refresh);
+init();
+</script>
+</body>
+</html>
