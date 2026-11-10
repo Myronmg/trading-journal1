@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Abi-Rechner</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Abi"><meta name="theme-color" content="#0b0b0c"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{--bg:#0b0b0c;--card:#1a1a1d;--line:#2a2a2e;--t:#f2f2f2;--m:#9a9aa2;--a:#e0b13a;--g:#4cc38a;--r:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0 auto;background:var(--bg);color:var(--t);font:15px/1.4 -apple-system,system-ui,sans-serif;padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));max-width:560px}
+h1{font-size:22px;margin:4px 0 14px}
+h2{font-size:15px;color:var(--m);margin:22px 0 8px;font-weight:600}
+.card{background:var(--card);border-radius:14px;padding:10px}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;color:var(--m);font-weight:500;padding:4px 2px}
+td{padding:3px 2px;border-top:1px solid var(--line)}
+td.n{font-size:14px;white-space:nowrap;padding-right:6px}
+input[type=number],input[type=text]{width:100%;background:#26262a;border:1px solid transparent;color:var(--t);border-radius:8px;padding:8px 4px;font-size:16px;text-align:center}
+input[type=text]{text-align:left;padding-left:8px}
+input:focus{outline:none;border-color:var(--a)}
+input.low{color:var(--r)}
+input[type=checkbox]{accent-color:var(--a);width:18px;height:18px}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.box{background:var(--card);border-radius:14px;padding:12px}
+.box b{display:block;font-size:22px}
+.box span,small{font-size:12px;color:var(--m)}
+.big{grid-column:1/-1;text-align:center}
+.big b{font-size:44px;color:var(--a)}
+.ok{color:var(--g)!important}.bad{color:var(--r)!important}
+.row{display:flex;gap:10px;align-items:center}
+button{background:none;border:1px solid var(--line);color:var(--m);border-radius:8px;padding:8px 12px;font-size:14px}
+</style></head><body>
+<h1>Abi-Rechner</h1>
+<div class="res" id="res"></div>
+<h2>Kurse <small>(eA = zählt doppelt, leer = noch offen)</small></h2>
+<div class="card"><table><thead><tr><th style="text-align:left">Fach</th><th>eA</th><th>12/1</th><th>12/2</th><th>13/1</th><th>13/2</th></tr></thead><tbody id="kurse"></tbody></table></div>
+<h2>Prüfungen <small>(×4, leer = Ø der Kurse)</small></h2>
+<div class="card"><table><tbody id="pruef"></tbody></table></div>
+<h2>Ziel</h2>
+<div class="card row"><span>Wunschnote</span><input type="number" id="ziel" step="0.1" min="1" max="4" style="width:90px"></div>
+<p><small>Block I = Ø Kurse × 40 (max 600). Block II = Prüfungspunkte × 4 (max 300). Note = (1020 − Punkte) / 180, abgeschnitten. Unterkurse = Kurse unter 5 Punkten (eA doppelt). Hochrechnung – genaue Regeln an deiner Schule checken.</small></p>
+<button id="reset">Zurücksetzen</button>
+<script>
+const DEF={k:[["WInf",0,11,10],["Inf",0,13,12],["Sport",0,13,12],["Bio",0,8,10],["Ethik",0,9,10],["VBWL (P)",1,6,7],["Mathe",1,9,10],["Englisch",0,11,8],["Deutsch",0,6,6],["Geschichte",0,10,10]].map(([n,e,a,b])=>({n,e:!!e,h:["",String(a),String(b),""]})),p:["VBWL","Mathe","Deutsch","Englisch","5. Fach"].map(n=>({n,v:""})),z:"2.7"};
+let S;try{S=JSON.parse(localStorage.getItem("abi2"))}catch(e){}
+if(!S)S=JSON.parse(JSON.stringify(DEF));
+const save=()=>{try{localStorage.setItem("abi2",JSON.stringify(S))}catch(e){}};
+const num=v=>v===""||v==null||isNaN(+v)?null:Math.max(0,Math.min(15,+v));
+const esc=s=>String(s).replace(/[&"<>]/g,c=>({"&":"&amp;",'"':"&quot;","<":"&lt;",">":"&gt;"}[c]));
+const de=x=>String(x).replace(".",",");
+function render(){
+  kurse.innerHTML=S.k.map((f,i)=>`<tr><td class="n">${esc(f.n)}</td><td style="text-align:center"><input type="checkbox" data-e="${i}" ${f.e?"checked":""}></td>${f.h.map((v,j)=>`<td><input type="number" inputmode="numeric" min="0" max="15" data-k="${i}" data-h="${j}" value="${esc(v)}"></td>`).join("")}</tr>`).join("");
+  pruef.innerHTML=S.p.map((p,i)=>`<tr><td><input type="text" data-pn="${i}" value="${esc(p.n)}"></td><td style="width:80px"><input type="number" inputmode="numeric" min="0" max="15" data-p="${i}" value="${esc(p.v)}"></td></tr>`).join("");
+  ziel.value=S.z;calc();
+}
+function calc(){
+  let P=0,W=0,uk=0,open=0,est=0,ps=0;
+  S.k.forEach(f=>{const w=f.e?2:1;f.h.forEach(v=>{const x=num(v);if(x==null){open++;return}P+=x*w;W+=w;if(x<5)uk+=w})});
+  const avg=W?P/W:0,b1=Math.round(avg*40);
+  S.p.forEach(p=>{const x=num(p.v);if(x==null){ps+=avg;est++}else ps+=x});
+  const b2=Math.round(ps*4),E=b1+b2;
+  const note=E<300?null:Math.max(10,Math.floor((1020-E)/18))/10;
+  const z=parseFloat(String(S.z).replace(",","."));
+  const need=isNaN(z)?null:Math.round(1003-180*z),diff=need==null?null:E-need;
+  const next=note&&note>1?Math.round(1003-180*(note-0.1)):null;
+  res.innerHTML=`<div class="box big"><span>Abischnitt${open||est?" (Hochrechnung)":""}</span><b>${note?de(note.toFixed(1)):"nicht bestanden"}</b><span>${E} / 900 Punkte</span></div>
+  <div class="box"><span>Ø Kurse (gewichtet)</span><b>${de(avg.toFixed(2))}</b></div>
+  <div class="box"><span>Unterkurse</span><b class="${uk>8?"bad":""}">${uk}</b></div>
+  <div class="box"><span>Block I</span><b>${b1} <small>/ 600</small></b></div>
+  <div class="box"><span>Block II</span><b>${b2} <small>/ 300</small></b></div>
+  ${need!=null?`<div class="box big"><span>Ziel ${de(z.toFixed(1))} → ab ${need} Punkten</span><b class="${diff>=0?"ok":"bad"}" style="font-size:26px">${diff>=0?"+"+diff+" Puffer":(-diff)+" fehlen"}</b>${next?`<span>Nächste bessere Note (${de((note-0.1).toFixed(1))}) ab ${next} Punkten</span>`:""}</div>`:""}`;
+  document.querySelectorAll("[data-k]").forEach(el=>{const x=num(el.value);el.classList.toggle("low",x!=null&&x<5)});
+}
+document.addEventListener("input",e=>{const t=e.target,d=t.dataset;
+  if(d.k!=null)S.k[d.k].h[d.h]=t.value;
+  else if(d.p!=null)S.p[d.p].v=t.value;
+  else if(d.pn!=null)S.p[d.pn].n=t.value;
+  else if(t.id==="ziel")S.z=t.value;
+  else return;
+  save();calc();});
+document.addEventListener("change",e=>{const d=e.target.dataset;if(d.e!=null){S.k[d.e].e=e.target.checked;save();calc()}});
+reset.onclick=()=>{S=JSON.parse(JSON.stringify(DEF));save();render()};
+render();
+</script>
+</body></html>
