@@ -136,9 +136,11 @@ canvas{width:100%;height:230px;display:block;touch-action:none}
     <div class="card cfg" id="aiCfg">
       <b>KI einrichten</b>
       <p>Füge einen API-Key ein. Kostenlos: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google Gemini</a> (Key beginnt mit AIza) oder <a href="https://console.groq.com/keys" target="_blank" rel="noopener">Groq</a> (gsk_). Bezahlt: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude</a> (sk-ant-). Der Key bleibt in diesem Browser und geht nur direkt an den Anbieter.</p>
-      <div class="toolbar"><input class="q" id="aiKey" type="password" placeholder="API-Key einfügen" autocomplete="off"><input class="q" id="aiModel" placeholder="Modell (optional)" autocomplete="off" style="max-width:220px">
+      <div class="toolbar"><input class="q" id="aiKey" type="text" name="pulse-api-key" placeholder="API-Key einfügen" autocomplete="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" style="-webkit-text-security:disc">
         <button class="btn" data-act="aisave">Speichern</button><button class="btn ghost" data-act="aidel">Key löschen</button></div>
       <div class="mut" id="aiCfgInfo" style="font-size:12px"></div>
+      <details style="margin-top:8px;font-size:12px"><summary class="mut" style="cursor:pointer">Anderes KI-Modell verwenden (optional)</summary>
+        <input class="q" id="aiModel" type="search" name="pulse-ki-modellname" placeholder="Modellname, leer lassen für Standard" autocomplete="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" style="margin-top:8px;width:100%"></details>
     </div>
     <div class="chips" id="aiQ" style="margin-bottom:10px"></div>
     <div id="aiOut"></div>
@@ -490,7 +492,9 @@ document.addEventListener('click',e=>{
   else if(a==='aicfg'){S.ai.showCfg=!S.ai.showCfg;$('#aiModel').value=S.ai.model;renderAll()}
   else if(a==='aiclear'){S.ai.msgs=[];S.ai.err=null;renderAll()}
   else if(a==='aidel'){S.ai.key='';S.ai.model='';LS.set('aikey','');LS.set('aimodel','');$('#aiKey').value=$('#aiModel').value='';renderAll()}
-  else if(a==='aisave'){const old=prov(),k=$('#aiKey').value.trim();if(k)S.ai.key=k;const m=$('#aiModel').value.trim();
+  else if(a==='aisave'){const old=prov(),k=$('#aiKey').value.trim();let m=$('#aiModel').value.trim();if(/[@\s]/.test(m))m='';
+    if(k&&!Object.values(PROV).some(p=>p.re.test(k))){$('#aiKey').value='';$('#aiCfgInfo').textContent='Das ist kein API-Key – er muss mit AIza, gsk_ oder sk-ant- beginnen. Nichts gespeichert.';return}
+    if(k)S.ai.key=k;
     S.ai.model=old&&prov()!==old&&m===S.ai.model?'':m;$('#aiModel').value=S.ai.model;$('#aiKey').value='';
     LS.set('aikey',S.ai.key);LS.set('aimodel',S.ai.model);S.ai.err=null;if(prov())S.ai.showCfg=false;renderAll()}
 });
@@ -501,6 +505,7 @@ $('#aiForm').addEventListener('submit',e=>{e.preventDefault();const i=$('#aiIn')
 addEventListener('resize',()=>{if(S.modal)loadChart(S.chartDays)});
 
 /* ---------- Start ---------- */
+if((S.ai.key&&!prov())||/[@\s]/.test(S.ai.model)){if(!prov())S.ai.key='';S.ai.model='';LS.set('aikey',S.ai.key);LS.set('aimodel','')} // falsch gespeicherte Autofill-Werte entfernen
 renderAll();refresh(false);
 setInterval(()=>{if(!document.hidden)refresh(false)},60e3);   // Daten (Caches drosseln automatisch)
 setInterval(()=>{if(!document.hidden&&!S.modal){renderStats();if(S.tab==='kalender')renderKalender()}},30e3); // Countdown
