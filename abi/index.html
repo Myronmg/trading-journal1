@@ -16,6 +16,9 @@ input[type=number],input[type=text]{width:100%;background:#26262a;border:1px sol
 input[type=text]{text-align:left;padding-left:8px}
 input:focus{outline:none;border-color:var(--a)}
 input.low{color:var(--r)}
+input.auto{color:var(--a)}
+#hj input[type=number]{padding:8px 2px}
+td.r{text-align:center;font-weight:600;width:44px}
 input[type=checkbox]{accent-color:var(--a);width:18px;height:18px}
 .res{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .box{background:var(--card);border-radius:14px;padding:12px}
@@ -31,6 +34,8 @@ button{background:none;border:1px solid var(--line);color:var(--m);border-radius
 <div class="res" id="res"></div>
 <h2>Kurse <small>(eA = zählt doppelt, leer = noch offen)</small></h2>
 <div class="card"><table><thead><tr><th style="text-align:left">Fach</th><th>eA</th><th>12/1</th><th>12/2</th><th>13/1</th><th>13/2</th></tr></thead><tbody id="kurse"></tbody></table></div>
+<h2>Halbjahr 13/1 <small>(Punkte mit Komma trennen, z. B. 4, 6 → füllt 13/1 automatisch)</small></h2>
+<div class="card"><table id="hj"><thead><tr><th style="text-align:left">Fach</th><th>% schr.</th><th>Schriftlich</th><th>Mündlich</th><th>13/1</th></tr></thead><tbody id="hjb"></tbody></table></div>
 <h2>Prüfungen <small>(×4, leer = Ø der Kurse)</small></h2>
 <div class="card"><table><tbody id="pruef"></tbody></table></div>
 <h2>Ziel</h2>
@@ -39,18 +44,32 @@ button{background:none;border:1px solid var(--line);color:var(--m);border-radius
 <button id="reset">Zurücksetzen</button>
 <script>
 const DEF={k:[["WInf",0,11,10],["Inf",0,13,12],["Sport",0,13,12],["Bio",0,8,10],["Ethik",0,9,10],["VBWL (P)",1,6,7],["Mathe",1,9,10],["Englisch",0,11,8],["Deutsch",0,6,6],["Geschichte",0,10,10]].map(([n,e,a,b])=>({n,e:!!e,h:["",String(a),String(b),""]})),p:["VBWL","Mathe","Deutsch","Englisch","5. Fach"].map(n=>({n,v:""})),z:"2.7"};
+const DW={WInf:"75",Inf:"75",Bio:"75",Ethik:"50",Geschichte:"50",Deutsch:"60"};
+const DG={Deutsch:{s:"4",m:"7"}};
+const mig=()=>S.k.forEach(f=>{if(!f.g){const d=DG[f.n]||{};f.g={w:DW[f.n]||"",s:d.s||"",m:d.m||""}}});
 let S;try{S=JSON.parse(localStorage.getItem("abi2"))}catch(e){}
 if(!S)S=JSON.parse(JSON.stringify(DEF));
+mig();
 const save=()=>{try{localStorage.setItem("abi2",JSON.stringify(S))}catch(e){}};
 const num=v=>v===""||v==null||isNaN(+v)?null:Math.max(0,Math.min(15,+v));
 const esc=s=>String(s).replace(/[&"<>]/g,c=>({"&":"&amp;",'"':"&quot;","<":"&lt;",">":"&gt;"}[c]));
+const list=v=>String(v||"").split(/[,;\s]+/).map(num).filter(x=>x!=null);
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+function hj(f){const s=mean(list(f.g.s)),m=mean(list(f.g.m));if(s==null&&m==null)return null;
+  let w=parseFloat(f.g.w);w=isNaN(w)?.5:Math.max(0,Math.min(100,w))/100;const v=s==null?m:m==null?s:s*w+m*(1-w);return{v,r:Math.round(v)}}
 const de=x=>String(x).replace(".",",");
 function render(){
   kurse.innerHTML=S.k.map((f,i)=>`<tr><td class="n">${esc(f.n)}</td><td style="text-align:center"><input type="checkbox" data-e="${i}" ${f.e?"checked":""}></td>${f.h.map((v,j)=>`<td><input type="number" inputmode="numeric" min="0" max="15" data-k="${i}" data-h="${j}" value="${esc(v)}"></td>`).join("")}</tr>`).join("");
+  hjb.innerHTML=S.k.map((f,i)=>`<tr><td class="n">${esc(f.n)}</td><td style="width:54px"><input type="number" inputmode="numeric" min="0" max="100" data-gw="${i}" value="${esc(f.g.w)}" placeholder="50"></td><td><input type="text" inputmode="decimal" data-gs="${i}" value="${esc(f.g.s)}"></td><td><input type="text" inputmode="decimal" data-gm="${i}" value="${esc(f.g.m)}"></td><td class="r" id="hr${i}"></td></tr>`).join("");
   pruef.innerHTML=S.p.map((p,i)=>`<tr><td><input type="text" data-pn="${i}" value="${esc(p.n)}"></td><td style="width:80px"><input type="number" inputmode="numeric" min="0" max="15" data-p="${i}" value="${esc(p.v)}"></td></tr>`).join("");
   ziel.value=S.z;calc();
 }
 function calc(){
+  S.k.forEach((f,i)=>{const h=hj(f),c=document.getElementById("hr"+i),el=document.querySelector(`[data-k="${i}"][data-h="2"]`);
+    if(c)c.innerHTML=h?`${h.r}<br><small>${de(h.v.toFixed(1))}</small>`:"";
+    if(h){f.h[2]=String(h.r);if(el){el.value=f.h[2];el.readOnly=true;el.classList.add("auto")}}
+    else if(el&&el.readOnly){el.readOnly=false;el.classList.remove("auto");el.value=f.h[2]=""}});
+  save();
   let P=0,W=0,uk=0,open=0,est=0,ps=0;
   S.k.forEach(f=>{const w=f.e?2:1;f.h.forEach(v=>{const x=num(v);if(x==null){open++;return}P+=x*w;W+=w;if(x<5)uk+=w})});
   const avg=W?P/W:0,b1=Math.round(avg*40);
@@ -71,12 +90,15 @@ function calc(){
 document.addEventListener("input",e=>{const t=e.target,d=t.dataset;
   if(d.k!=null)S.k[d.k].h[d.h]=t.value;
   else if(d.p!=null)S.p[d.p].v=t.value;
+  else if(d.gw!=null)S.k[d.gw].g.w=t.value;
+  else if(d.gs!=null)S.k[d.gs].g.s=t.value;
+  else if(d.gm!=null)S.k[d.gm].g.m=t.value;
   else if(d.pn!=null)S.p[d.pn].n=t.value;
   else if(t.id==="ziel")S.z=t.value;
   else return;
   save();calc();});
 document.addEventListener("change",e=>{const d=e.target.dataset;if(d.e!=null){S.k[d.e].e=e.target.checked;save();calc()}});
-reset.onclick=()=>{S=JSON.parse(JSON.stringify(DEF));save();render()};
+reset.onclick=()=>{S=JSON.parse(JSON.stringify(DEF));mig();save();render()};
 render();
 </script>
 </body></html>
