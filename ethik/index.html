@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ethik"><meta name="theme-color" content="#3b4cca"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png">
+<title>Ethik – Willensfreiheit Lerntrainer</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1d1d1f;--mut:#6b6b70;--line:#e3e1da;--acc:#3b4cca;--acc2:#e9ebfb;--ok:#1f8a4c;--okb:#e3f4ea;--bad:#c4372f;--badb:#fbe7e5;--hl:#fff1b8}
+@media (prefers-color-scheme:dark){:root{--bg:#141416;--card:#1e1e22;--ink:#f1f1f3;--mut:#9a9aa2;--line:#33333a;--acc:#8b98ff;--acc2:#262a4a;--ok:#4cc27e;--okb:#16301f;--bad:#ff7b72;--badb:#3a1a18;--hl:#4a3f12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+header{padding:18px 16px 8px;max-width:720px;margin:0 auto}
+h1{font-size:20px;margin:0 0 2px}
+.sub{color:var(--mut);font-size:14px}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .in{display:flex;gap:4px;overflow-x:auto;max-width:720px;margin:0 auto;padding:8px 12px}
+nav button{flex:0 0 auto;border:0;background:none;color:var(--mut);font:inherit;font-size:15px;padding:8px 12px;border-radius:999px;cursor:pointer}
+nav button.on{background:var(--acc);color:#fff}
+main{max-width:720px;margin:0 auto;padding:14px 12px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer;background:var(--acc2);color:var(--acc)}
+.btn.pri{background:var(--acc);color:#fff}
+.btn.ok{background:var(--ok);color:#fff}
+.btn.bad{background:var(--bad);color:#fff}
+.btn.sm{padding:7px 12px;font-size:14px}
+.grow{flex:1}
+.pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--acc2);color:var(--acc);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:22px}
+.stat span{font-size:12px;color:var(--mut)}
+.day{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);margin-bottom:8px}
+.day.today{border:2px solid var(--acc)}
+.day.done{opacity:.55}
+.day .dt{min-width:52px;font-weight:700;font-size:14px}
+.day .dt small{display:block;color:var(--mut);font-weight:500}
+.day .tx{flex:1;font-size:14px}
+.day .tx b{font-size:15px}
+.chk{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);background:none;cursor:pointer;flex:0 0 auto;color:#fff;font-weight:800}
+.chk.on{background:var(--ok);border-color:var(--ok)}
+.goal{background:var(--okb);color:var(--ok);border:0;font-weight:600}
+.flash .q{font-size:20px;font-weight:700;margin:6px 0 10px}
+.txt{font-size:16px;line-height:1.65}
+.txt mark{background:var(--hl);color:inherit;padding:0 2px;border-radius:3px;font-weight:600}
+.merk{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--acc2);font-size:14px}
+.blank{display:inline-block;min-width:60px;border:0;border-bottom:2px solid var(--acc);background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:0 2px;margin:0 2px;outline:none}
+.blank.r{border-color:var(--ok);color:var(--ok)}
+.blank.w{border-color:var(--bad);color:var(--bad)}
+.fix{color:var(--ok);font-size:13px;font-weight:700}
+.prog{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0 14px}
+.prog i{display:block;height:100%;background:var(--acc)}
+.seg{display:inline-flex;background:var(--acc2);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;font:inherit;font-size:14px;padding:6px 12px;border-radius:8px;color:var(--acc);cursor:pointer}
+.seg button.on{background:var(--card);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+table.sb{width:100%;border-collapse:collapse;font-size:14px}
+table.sb td,table.sb th{border:1px solid var(--line);padding:8px;vertical-align:top}
+table.sb th{background:var(--acc2);text-align:left}
+select{width:100%;font:inherit;font-size:14px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.cell-ok{background:var(--okb)}.cell-bad{background:var(--badb)}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.opt.r{background:var(--okb);border-color:var(--ok)}
+.opt.w{background:var(--badb);border-color:var(--bad)}
+.gl h3{margin:0 0 6px;font-size:16px}
+.box{font-size:12px;color:var(--mut)}
+.dots{letter-spacing:2px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ethik: Willensfreiheit</h1>
+  <div class="sub" id="countdown"></div>
+</header>
+<nav><div class="in" id="tabs">
+  <button data-t="plan" class="on">Plan</button>
+  <button data-t="learn">Lernen</button>
+  <button data-t="sb">Schaubild</button>
+  <button data-t="pos">Positionen-Quiz</button>
+  <button data-t="gl">Glossar</button>
+</div></nav>
+<main>
+  <section id="plan"></section>
+  <section id="learn" class="hide"></section>
+  <section id="sb" class="hide"></section>
+  <section id="pos" class="hide"></section>
+  <section id="gl" class="hide"></section>
+</main>
+
+<script>
+/* ---------- DATEN ---------- */
+const CARDS=[
+{id:"glob",g:"Determinismus",t:"Globaler Determinismus",x:"Der „globale“ Determinismus (lat. [[determinare]] ‚festlegen‘, ‚Grenzen setzen‘) ist die Auffassung, dass [[alle]] – insbesondere auch [[zukünftige]] – Ereignisse durch [[Vorbedingungen]] [[eindeutig festgelegt]] sind. Die Gegenthese ist der [[Indeterminismus]].",m:"Alles – auch die Zukunft – steht durch das Vorher schon fest."},
+{id:"ann",g:"Determinismus",t:"Determinismus: 2 Annahmen der Naturphilosophie",x:"1. Sämtliche natürlichen Prozesse sind durch [[Naturgesetze]] bestimmt. 2. Die [[Bewegungsgleichungen]] liefern beim Einsetzen von [[exakten Werten]] eine [[eindeutige Lösung]] und legen damit die [[Ergebnisse]] fest.",m:"Naturgesetze + Gleichung mit exakten Werten = nur EIN mögliches Ergebnis."},
+{id:"lok",g:"Determinismus",t:"Lokaler Determinismus",x:"Der „lokale“ Determinismus behauptet nicht, dass alles determiniert ist, sondern nur, dass die [[menschlichen Entscheidungen]] durch Vorbedingungen determiniert sind – z. B. durch [[neuronale Prozesse]] im Gehirn, [[Erziehung]]/Umwelt, die [[Gene]], ein Wechselspiel von Gene und Umwelt, das [[Unbewusste]], äußere [[Reize]], die [[Klassenzugehörigkeit]]. (Im Weiteren ist mit Determinismus immer der [[globale]] gemeint.)",m:"Beispiele: N-E-G-W-U-R-K → „Nie Ernsthaft Gelernt, Wieder Unnötig RumgeKlickt“ (Neuronal, Erziehung, Gene, Wechselspiel, Unbewusstes, Reize, Klasse)."},
+{id:"indet",g:"Indeterminismus",t:"Indeterminismus",x:"Indeterminismus ist die Auffassung, dass [[nicht alle]] Ereignisse durch Vorbedingungen eindeutig festgelegt sind, es also bestimmte Ereignisse gibt, die nicht (eindeutig) durch [[Ursachen]] determiniert, sondern [[indeterminiert]] ([[unbestimmt]]) sind. Klassisch gilt er als [[Gegensatz]] zum Determinismus.",m:"Nicht alles steht fest – manche Ereignisse sind offen."},
+{id:"zuf",g:"Indeterminismus",t:"Objektiver Zufall",x:"Grundlage des Indeterminismus ist die Existenz des [[objektiven Zufalls]]: Zufallsereignisse, die (im Gegensatz zum [[subjektiven]] Zufall) [[nicht reduzierbar]] sind, also nicht von (verborgenen) Ursachen abhängen, sondern [[fundamental unbestimmt]] und rational [[nicht erklärbar]] sind. Die mathematischen Grundlagen legte [[John von Neumann]].",m:"Subjektiv = Ursache nur unbekannt. Objektiv = es GIBT keine Ursache."},
+{id:"frank",g:"Indeterminismus",t:"Philipp Frank (1932) & das Problem",x:"Der österreichische Wissenschaftler [[Philipp Frank]] ([[1932]]): Ein absoluter Zufall wäre ein Ereignis, das in Bezug auf [[alle Kausalgesetze]] ein Zufall ist, das also nirgends als [[Glied einer Kette]] auftritt. Problem: zu entscheiden, ob die Ursache lediglich [[unbekannt]] ist oder ob das Ereignis objektiv [[ohne Ursache]] eintrat.",m:"Absoluter Zufall = hängt in keiner Kausalkette."},
+{id:"kaus",g:"Kausalität",t:"Kausalität",x:"Kausalität (lat. [[causa]] „Ursache“, causalis „ursächlich“) ist die Beziehung zwischen [[Ursache]] und [[Wirkung]]. Sie betrifft die [[Abfolge]] von Ereignissen und Zuständen, die aufeinander bezogen sind. A ist die Ursache für die Wirkung B, wenn B von A [[erzeugt]] wird.",m:"A erzeugt B."},
+{id:"kprin",g:"Kausalität",t:"Kausalprinzip",x:"Philosophisches Prinzip, wonach [[jedes Geschehen]] eine [[Ursache]] hat. Folgt auf Ereignis A (Ursache) [[immer]] Ereignis B (Wirkung) und tritt B [[nur]] ein, wenn A [[zeitlich vorausgegangen]] ist, spricht man von einer [[kausalen Verknüpfung]] zwischen A und B.",m:"2 Bedingungen: IMMER B nach A + B NUR wenn A vorher."},
+{id:"natg",g:"Kausalität",t:"Naturgesetz",x:"Als Naturgesetz wird die [[orts- und zeitunabhängige]] und auf [[Naturkonstanten]] beruhende [[Regelmäßigkeit]] von Naturerscheinungen bezeichnet. Der Plural „Naturgesetze“ meint die [[Gesamtheit]] dieser Regelmäßigkeiten, auch solche, die [[noch nicht entdeckt]] wurden. Eine einheitliche, abschließende [[Definition]] existiert derzeit [[nicht]].",m:"Überall, immer, auf Naturkonstanten – aber keine fertige Definition."},
+{id:"wf",g:"Willensfreiheit",t:"Willensfreiheit",x:"a) Die Fähigkeit des Menschen, sich trotz Bedingungen und Einflüssen der [[Außenwelt]] selbst zum [[Urheber]] von Entscheidungen zu machen, eigene [[Motive]] abzuwägen, [[Handlungsoptionen]] zu entwickeln und ein bewusst hervorgebrachtes [[Ziel]] anzustreben → „[[Ursprungsfreiheit]]“. b) Wenn dem Entscheider die „[[reale]]“ Möglichkeit offensteht, sich zwischen mehreren [[Alternativen]] zu entscheiden → „[[Spielraumfreiheit]]“.",m:"Ursprung = ICH bin die Quelle. Spielraum = ich HÄTTE auch anders gekonnt."},
+{id:"komp",g:"Kompatibilismus",t:"Kompatibilismus (Hume)",x:"Kompatibilismus, auch „[[weicher Determinismus]]“: freier Wille und Determinismus sind [[vereinbar]]. Bekanntester Vertreter: [[David Hume]]. Freier Wille ist für ihn [[nicht]] die Fähigkeit, unter exakt gleichen Bedingungen anders zu entscheiden, sondern eine [[hypothetische]] Fähigkeit: anders zu entscheiden, wenn man durch andere [[Wünsche]] oder [[Überzeugungen]] anders disponiert gewesen wäre. Freie Handlungen werden durch Entscheidungen verursacht, die auf Wünschen, Überzeugungen und [[Charaktereigenschaften]] beruhen – der Entscheidungsprozess ist durch eine [[Kausalkette]] bestimmt.",m:"Hume: „Ich hätte anders gekonnt – WENN ich anders gewollt hätte.“"},
+{id:"hund",g:"Kompatibilismus",t:"Beispiel: Hund am Karren (Chrysippos)",x:"Nach einem Beispiel des [[stoischen]] Philosophen [[Chrysippos]] ist ein an einem [[Karren]] festgebundener [[Hund]], der sich „frei“ entscheidet, diesem zu folgen, „[[determiniert]]“ durch Bedingungen (den [[Wagen]]), die bereits vorhanden waren, als die Entscheidung getroffen wurde.",m:"Der Hund läuft „freiwillig“ mit – muss aber sowieso."},
+{id:"gruende",g:"Kompatibilismus",t:"Determinismus durch Gründe",x:"Einige Kompatibilisten sehen im Determinismus sogar eine [[notwendige Voraussetzung]] für freien Willen: Handlungen sind nur frei, wenn sie aus [[Gründen]] erfolgen → Willensfreiheit erfordert den [[Determinismus durch Gründe]]. Paradoxerweise stützt also der [[Determinismus]] die Willensfreiheit und nicht der [[Indeterminismus]].",m:"Ohne Gründe wäre es Zufall – und Zufall ist nicht frei."},
+{id:"inkomp",g:"Inkompatibilismus",t:"Inkompatibilismus",x:"Inkompatibilismus: freier Wille und Determinismus sind [[inkompatibel]] (unvereinbar). Die „[[pessimistische]]“ Version: [[weder]] Determinismus [[noch]] Indeterminismus lassen einen freien Willen zu. „Freier Wille“ bezieht sich auf [[echte]] ([[absolute]], ultimative) [[alternative Möglichkeiten]] von Wünschen, Überzeugungen oder Handlungen – die in kompatibilistischen Definitionen nicht vorkommen. Nur diese absolute Freiheit verträgt sich mit individueller [[Verantwortung]].",m:"Echte Freiheit = wirklich anders können. Sonst keine Verantwortung."},
+{id:"einw",g:"Inkompatibilismus",t:"Einwand der Kompatibilisten",x:"Kompatibilisten entgegnen: Solche absoluten alternativen Möglichkeiten können ihre Ursache nur im [[Zufall]] haben – was die [[Verantwortlichkeit]] des Einzelnen [[verringert]].",m:"Absolute Freiheit = Zufall = weniger Verantwortung."},
+{id:"schau",g:"Schaubild",t:"Schaubild (4 Felder)",x:"Determiniert + frei = [[Kompatibilismus]] ([[weicher Determinismus]]). Determiniert + unfrei = [[Inkompatibilismus I]] ([[harter Determinismus]]). Nicht determiniert + frei = [[Inkompatibilismus II]] ([[Libertarismus]]). Nicht determiniert + unfrei = [[leer]].",m:"Libertarismus = „liber“ = frei, weil NICHT determiniert."},
+{id:"p1",g:"Positionen",t:"1) Konzeptioneller Kompatibilismus",x:"Willens- bzw. Entscheidungsfreiheit und Determinismus sind [[vereinbar]], trifft aber [[keine Aussage]] darüber, ob freier Wille und Determinismus der Fall sind.",m:"Konzeptionell = nur auf Begriffsebene, sagt nichts über die Realität."},
+{id:"p2",g:"Positionen",t:"2) Inhaltlicher Kompatibilismus",x:"Entscheidungsfreiheit und Determinismus sind [[vereinbar]], und vertritt die These, dass freier Wille [[und]] Determinismus [[der Fall]] sind.",m:"Inhaltlich = behauptet: beides existiert wirklich."},
+{id:"p3",g:"Positionen",t:"3) Agnostischer Kompatibilismus",x:"Verknüpft freien Willen mit [[moralischer Verantwortung]] und hält die Frage, ob der Determinismus wahr ist, für [[irrelevant]] bzw. bedeutungslos für die Frage, ob und wann wir moralisch [[verantwortlich]] sind bzw. gemacht werden.",m:"Agnostisch = „weiß nicht, ist auch egal“ – Hauptsache Verantwortung."},
+{id:"p4",g:"Positionen",t:"4) Konzeptioneller Inkompatibilismus",x:"Willensfreiheit und Determinismus sind [[nicht vereinbar]], trifft aber [[keine Aussage]] darüber, [[welches]] von beiden der Fall ist.",m:"Entweder-oder – aber legt sich nicht fest."},
+{id:"p5",g:"Positionen",t:"5) Inkompatibilismus I",x:"Willensfreiheit und Determinismus sind [[nicht vereinbar]] und bestreitet den [[freien Willen]].",m:"I = harter Determinismus → Wille weg."},
+{id:"p6",g:"Positionen",t:"6) Inkompatibilismus II",x:"Willensfreiheit und Determinismus sind [[nicht vereinbar]] und bestreitet den [[Determinismus]].",m:"II = Libertarismus → Determinismus weg."},
+{id:"p7",g:"Positionen",t:"7) Inkompatibilismus III",x:"Sowohl [[Determinismus]] als auch [[Indeterminismus]] sind nicht vereinbar mit dem freien Willen. Folglich gibt es [[keinen freien Willen]].",m:"III = pessimistisch → nichts passt, kein freier Wille."}
+];
+const ALL=CARDS.map(c=>c.id);
+const ids=(...a)=>a;
+const PLAN=[
+{d:"2026-11-17",n:ids("glob","ann","lok"),w:[],tx:"Determinismus global + lokal. Erst Glossar lesen, dann Karten."},
+{d:"2026-11-18",n:ids("indet","zuf","frank"),w:"before",tx:"Indeterminismus, objektiver Zufall, Philipp Frank."},
+{d:"2026-11-19",n:ids("kaus","kprin"),w:"before",tx:"Kausalität + Kausalprinzip."},
+{d:"2026-11-20",n:ids("natg","wf"),w:"before",tx:"Naturgesetz + Willensfreiheit (Ursprung/Spielraum)."},
+{d:"2026-11-21",n:[],w:"before",mode:"cloze",tx:"Wiederholungstag: alles bisher im Lücken-Modus."},
+{d:"2026-11-22",n:ids("komp","hund","gruende"),w:"weak",tx:"Kompatibilismus: Hume, Hund am Karren, Gründe."},
+{d:"2026-11-23",n:ids("inkomp","einw"),w:"before",tx:"Inkompatibilismus + Einwand."},
+{d:"2026-11-24",n:ids("schau","p1","p2","p3","p4"),w:"weak",tx:"Schaubild + Positionen 1–4. Danach Schaubild-Tab."},
+{d:"2026-11-25",n:ids("p5","p6","p7"),w:"before",tx:"Positionen 5–7. Danach Positionen-Quiz."},
+{d:"2026-11-26",n:[],w:"all",tx:"Kompletter Karten-Durchlauf."},
+{d:"2026-11-27",n:[],w:"all",mode:"cloze",tx:"Blind-Test: alles im Lücken-Modus (alle Lücken)."},
+{d:"2026-11-28",n:[],w:"weak",mode:"cloze",tx:"Nur schwache Karten, bis alle sitzen."},
+{d:"2026-11-29",n:[],w:"all",tx:"Generalprobe: Glossar auf Papier frei aufschreiben, mit PDF vergleichen. Lücken nachlernen."},
+{d:"2026-11-30",n:[],w:"weak",mode:"cloze",goal:true,tx:"ZIEL: Alles sitzt. Letzter Check schwacher Karten + Quiz."},
+{d:"2026-12-01",n:[],w:"all",light:true,tx:"Nur locker drüberschauen (Glossar-Tab)."},
+{d:"2026-12-02",n:[],w:[],light:true,exam:true,tx:"KLAUSUR. Morgens nur Merkhilfen lesen."}
+];
+
+/* ---------- STATE ---------- */
+const KEY="ethik-wf-v1";
+let S={box:{},done:{}};
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const box=id=>S.box[id]||0;
+const weakIds=()=>ALL.filter(id=>box(id)<2);
+const byId=Object.fromEntries(CARDS.map(c=>[c.id,c]));
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function daysTo(s){const a=new Date(todayStr()+"T00:00"),b=new Date(s+"T00:00");return Math.round((b-a)/864e5)}
+
+/* ---------- HELPERS ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const marked=x=>esc(x).replace(/\[\[(.+?)\]\]/g,"<mark>$1</mark>");
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function norm(s){return s.toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]/g,"")}
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){let c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function match(inp,ans){const a=norm(inp),b=norm(ans);if(!a)return false;if(a===b)return true;return b.length>5&&lev(a,b)<=(b.length>12?2:1)}
+
+/* ---------- TABS ---------- */
+let tab="plan";
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>show(b.dataset.t));
+function show(t){tab=t;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  ["plan","learn","sb","pos","gl"].forEach(s=>$("#"+s).classList.toggle("hide",s!==t));
+  ({plan:renderPlan,learn:renderLearn,sb:renderSB,pos:renderPos,gl:renderGL})[t]();window.scrollTo(0,0)}
+
+/* ---------- COUNTDOWN ---------- */
+function renderCountdown(){const g=daysTo("2026-11-30"),k=daysTo("2026-12-02");
+  $("#countdown").textContent=(g>0?`Noch ${g} Tage bis „fertig“ (30.11.)`:g===0?"Heute ist Ziel-Tag!":"Ziel erreicht – nur noch wiederholen")+` · Klausur am 2.12.${k>0?` (in ${k} Tagen)`:""}`}
+
+/* ---------- PLAN ---------- */
+const WD=["So","Mo","Di","Mi","Do","Fr","Sa"];
+function dayCards(i){const p=PLAN[i];let w=[];
+  if(p.w==="all")w=ALL.slice();
+  else if(p.w==="weak"){const seen=PLAN.slice(0,i).flatMap(x=>x.n);w=weakIds().filter(id=>seen.includes(id)||p.goal||i>=9)}
+  else if(p.w==="before")w=PLAN.slice(0,i).flatMap(x=>x.n);
+  else w=p.w;
+  return [...new Set([...p.n,...w])]}
+function renderPlan(){
+  const known=ALL.filter(id=>box(id)>=2).length,doneDays=PLAN.filter(p=>S.done[p.d]).length,t=todayStr();
+  let h=`<div class="stats"><div class="stat"><b>${known}/${ALL.length}</b><span>Karten sitzen</span></div><div class="stat"><b>${weakIds().length}</b><span>schwach</span></div><div class="stat"><b>${doneDays}/14</b><span>Tage erledigt</span></div></div>`;
+  PLAN.forEach((p,i)=>{const d=new Date(p.d+"T00:00"),cs=dayCards(i);
+    const cls=["day",p.d===t?"today":"",S.done[p.d]?"done":"",p.goal?"goal":""].join(" ");
+    h+=`<div class="${cls}"><div class="dt">${d.getDate()}.${d.getMonth()+1}.<small>${WD[d.getDay()]}</small></div>
+    <div class="tx">${p.d===t?'<span class="pill">HEUTE</span> ':""}${p.exam?"<b>📝 ":"<b>"}${esc(p.tx)}</b><br>
+    <span class="box">${p.n.length?"Neu: "+p.n.map(id=>esc(byId[id].t)).join(", "):""}${p.n.length&&cs.length>p.n.length?" · ":""}${cs.length>p.n.length?`+ ${cs.length-p.n.length} Wiederholung`:""}${!p.n.length&&!cs.length&&!p.exam?"":""}</span>
+    ${!p.light&&cs.length?`<div class="row" style="margin-top:8px"><button class="btn sm pri" data-start="${i}">Starten (${cs.length})</button></div>`:""}</div>
+    ${p.exam?"":`<button class="chk ${S.done[p.d]?"on":""}" data-chk="${p.d}">${S.done[p.d]?"✓":""}</button>`}</div>`});
+  h+=`<div class="row" style="margin-top:14px"><button class="btn sm" id="reset">Fortschritt zurücksetzen</button></div>`;
+  $("#plan").innerHTML=h;
+  $("#plan").querySelectorAll("[data-chk]").forEach(b=>b.onclick=()=>{S.done[b.dataset.chk]=!S.done[b.dataset.chk];save();renderPlan()});
+  $("#plan").querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>{const i=+b.dataset.start;startSession(dayCards(i),PLAN[i].mode||"flash",PLAN[i].d)});
+  let armed=false;$("#reset").onclick=e=>{if(!armed){armed=true;e.target.textContent="Sicher? Nochmal tippen";return}S={box:{},done:{}};save();renderPlan()};
+  const td=$("#plan .today");if(td)setTimeout(()=>td.scrollIntoView({block:"center"}),50);
+}
+
+/* ---------- LERNEN ---------- */
+let L=null; // {queue,total,mode,day,cur,revealed,few}
+function startSession(list,mode,day){L={queue:shuffle(list),total:list.length,mode,day,doneN:0,few:false,checked:false};show("learn")}
+function renderLearn(){
+  const el=$("#learn");
+  if(!L){el.innerHTML=`<div class="card"><b>Was lernen?</b><p class="sub">Tipp: Im Plan auf „Starten“ drücken – oder frei wählen:</p>
+   <div class="row"><button class="btn pri" data-s="all">Alle (${ALL.length})</button><button class="btn" data-s="weak">Nur schwache (${weakIds().length})</button></div>
+   <p class="sub" style="margin-top:12px">Modus</p><div class="seg" id="mseg"><button data-m="flash" class="on">Karteikarten</button><button data-m="cloze">Lückentext</button></div></div>`;
+   let m="flash";el.querySelectorAll("#mseg button").forEach(b=>b.onclick=()=>{m=b.dataset.m;el.querySelectorAll("#mseg button").forEach(x=>x.classList.toggle("on",x===b))});
+   el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{const l=b.dataset.s==="all"?ALL:weakIds();if(!l.length)return;startSession(l,m,null)});return}
+  if(!L.queue.length){if(L.day){S.done[L.day]=true;save()}
+    el.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:42px">🎉</div><h2 style="margin:6px 0">Durch!</h2><p class="sub">${L.total} Karten · ${weakIds().length} noch schwach insgesamt${L.day?" · Tag abgehakt":""}</p>
+    <div class="row" style="justify-content:center"><button class="btn pri" id="bk">Zum Plan</button><button class="btn" id="nw">Neue Runde</button></div></div>`;
+    $("#bk").onclick=()=>{L=null;show("plan")};$("#nw").onclick=()=>{L=null;renderLearn()};return}
+  const c=byId[L.queue[0]],pct=Math.round(L.doneN/L.total*100);
+  let h=`<div class="row"><div class="seg" id="mseg"><button data-m="flash" class="${L.mode==="flash"?"on":""}">Karten</button><button data-m="cloze" class="${L.mode==="cloze"?"on":""}">Lücken</button></div><span class="grow"></span><span class="sub">${L.doneN}/${L.total}</span><button class="btn sm" id="quit">✕</button></div>
+  <div class="prog"><i style="width:${pct}%"></i></div><div class="card flash"><span class="pill">${esc(c.g)}</span> <span class="box dots">${"●".repeat(box(c.id))}${"○".repeat(Math.max(0,3-box(c.id)))}</span><div class="q">${esc(c.t)}</div>`;
+  if(L.mode==="flash"){
+    if(!L.revealed)h+=`<p class="sub">Erst im Kopf (oder laut) aufsagen, dann aufdecken.</p><button class="btn pri" id="rev" style="width:100%">Aufdecken</button></div>`;
+    else h+=`<div class="txt">${marked(c.x)}</div><div class="merk">💡 ${esc(c.m)}</div></div>${rateBtns()}`;
+  }else{
+    let k=0;const html=esc(c.x).replace(/\[\[(.+?)\]\]/g,(_,a)=>{const i=k++;const blank=!L.few||i%2===0;
+      return blank?`<input class="blank" data-a="${a}" size="${Math.max(4,a.length)}" autocomplete="off" autocapitalize="off" spellcheck="false">`:`<mark>${a}</mark>`});
+    h+=`<div class="row" style="margin-bottom:8px"><label class="sub"><input type="checkbox" id="few" ${L.few?"checked":""}> nur jede 2. Lücke</label></div><div class="txt">${html}</div>`;
+    h+=L.checked?`<div class="merk">💡 ${esc(c.m)}</div></div>${rateBtns()}`:`<button class="btn pri" id="chk" style="width:100%;margin-top:12px">Prüfen</button></div>`;
+  }
+  el.innerHTML=h;
+  el.querySelectorAll("#mseg button").forEach(b=>b.onclick=()=>{L.mode=b.dataset.m;L.revealed=false;L.checked=false;renderLearn()});
+  $("#quit").onclick=()=>{L=null;renderLearn()};
+  if($("#rev"))$("#rev").onclick=()=>{L.revealed=true;renderLearn()};
+  if($("#few"))$("#few").onchange=e=>{L.few=e.target.checked;L.checked=false;renderLearn()};
+  if($("#chk")){const ins=[...el.querySelectorAll(".blank")];ins[0]&&ins[0].focus({preventScroll:true});
+    ins.forEach((inp,i)=>inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();ins[i+1]?ins[i+1].focus():$("#chk").click()}});
+    $("#chk").onclick=()=>{let r=0;ins.forEach(inp=>{const ok=match(inp.value,inp.dataset.a);if(ok)r++;inp.classList.add(ok?"r":"w");inp.readOnly=true;
+      if(!ok){const s=document.createElement("span");s.className="fix";s.textContent=" → "+inp.dataset.a;inp.after(s)}});
+      L.checked=true;L.score=r+"/"+ins.length;
+      const card=el.querySelector(".flash");card.insertAdjacentHTML("beforeend",`<div class="merk">💡 ${esc(c.m)}</div>`);$("#chk").remove();
+      el.insertAdjacentHTML("beforeend",`<p class="sub" style="text-align:center">${r}/${ins.length} richtig</p>`+rateBtns(r===ins.length));bindRate()}}
+  bindRate();
+}
+function rateBtns(allOk){return `<div class="row"><button class="btn bad grow" data-r="0">Nochmal</button><button class="btn ok grow" data-r="1">${allOk?"Sitzt ✓":"Sitzt"}</button></div>`}
+function bindRate(){$("#learn").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const id=L.queue.shift();
+  if(b.dataset.r==="1"){S.box[id]=Math.min(3,box(id)+1);L.doneN++}else{S.box[id]=0;L.queue.splice(Math.min(L.queue.length,2+Math.floor(Math.random()*2)),0,id)}
+  save();L.revealed=false;L.checked=false;renderLearn()})}
+
+/* ---------- SCHAUBILD ---------- */
+const SBO=["Kompatibilismus (weicher Determinismus)","Inkompatibilismus I (harter Determinismus)","Inkompatibilismus II (Libertarismus)","— leer —"];
+const SBA={df:0,du:1,nf:2,nu:3};
+function renderSB(){
+  const sel=k=>`<select data-k="${k}"><option value="">wählen…</option>${SBO.map((o,i)=>`<option value="${i}">${o}</option>`).join("")}</select>`;
+  $("#sb").innerHTML=`<div class="card"><b>Schaubild ausfüllen</b><p class="sub">Welche Position gehört in welches Feld?</p>
+  <table class="sb"><tr><th>Der Wille ist</th><th>frei</th><th>unfrei</th></tr>
+  <tr><th>determiniert</th><td>${sel("df")}</td><td>${sel("du")}</td></tr>
+  <tr><th>nicht determiniert</th><td>${sel("nf")}</td><td>${sel("nu")}</td></tr></table>
+  <div class="row" style="margin-top:12px"><button class="btn pri grow" id="sbc">Prüfen</button><button class="btn" id="sbr">Neu</button></div><p id="sbm" class="sub"></p>
+  <div class="merk">💡 Libertarismus = „liber“ (frei) → frei, weil nicht determiniert. Harter Determinismus → alles festgelegt, also unfrei.</div></div>`;
+  $("#sbc").onclick=()=>{let r=0;document.querySelectorAll("#sb select").forEach(s=>{const ok=+s.value===SBA[s.dataset.k]&&s.value!=="";if(ok)r++;s.parentElement.className=ok?"cell-ok":"cell-bad"});
+    $("#sbm").textContent=r===4?"Perfekt – alle 4 richtig! ✓":`${r}/4 richtig. Rote Felder nochmal.`};
+  $("#sbr").onclick=renderSB;
+}
+
+/* ---------- POSITIONEN-QUIZ ---------- */
+const POS=CARDS.filter(c=>c.g==="Positionen");
+let PQ=null;
+function renderPos(){
+  if(!PQ){PQ={order:shuffle([...POS,...shuffle(POS)].slice(0,10)),i:0,r:0,ans:null}}
+  const el=$("#pos");
+  if(PQ.i>=PQ.order.length){el.innerHTML=`<div class="card" style="text-align:center"><h2>${PQ.r}/${PQ.order.length}</h2><p class="sub">${PQ.r>=9?"Sitzt!":"Nochmal – Ziel ist 10/10."}</p><button class="btn pri" id="pqa">Neue Runde</button></div>`;$("#pqa").onclick=()=>{PQ=null;renderPos()};return}
+  const q=PQ.order[PQ.i];
+  let h=`<div class="row"><span class="sub">Frage ${PQ.i+1}/${PQ.order.length}</span><span class="grow"></span><span class="sub">${PQ.r} richtig</span></div><div class="prog"><i style="width:${PQ.i/PQ.order.length*100}%"></i></div>
+  <div class="card"><p class="sub">Welche Position ist das?</p><div class="txt">${esc(q.x.replace(/\[\[|\]\]/g,""))}</div></div>`;
+  POS.forEach(p=>{let c="";if(PQ.ans){if(p.id===q.id)c="r";else if(p.id===PQ.ans)c="w"}h+=`<button class="opt ${c}" data-p="${p.id}">${esc(p.t)}</button>`});
+  if(PQ.ans)h+=`<div class="merk">💡 ${esc(q.m)}</div><button class="btn pri" id="pqn" style="width:100%;margin-top:10px">Weiter</button>`;
+  el.innerHTML=h;
+  if(!PQ.ans)el.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{PQ.ans=b.dataset.p;if(PQ.ans===q.id)PQ.r++;renderPos()});
+  else $("#pqn").onclick=()=>{PQ.i++;PQ.ans=null;renderPos()};
+}
+
+/* ---------- GLOSSAR ---------- */
+function renderGL(){let h=`<p class="sub">Alles zum Durchlesen. Gelb = Schlüsselwörter (genau die kommen im Lückentext).</p>`,g="";
+  CARDS.forEach(c=>{if(c.g!==g){g=c.g;h+=`<h2 style="font-size:15px;color:var(--acc);margin:18px 4px 8px">${esc(g)}</h2>`}
+    h+=`<div class="card gl"><h3>${esc(c.t)} <span class="box dots">${"●".repeat(box(c.id))}${"○".repeat(Math.max(0,3-box(c.id)))}</span></h3><div class="txt">${marked(c.x)}</div><div class="merk">💡 ${esc(c.m)}</div></div>`});
+  $("#gl").innerHTML=h}
+
+renderCountdown();renderPlan();
+</script>
+</body>
+</html>
